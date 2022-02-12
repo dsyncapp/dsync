@@ -1,16 +1,18 @@
-import * as signaling_events from "@dsync/signaling-events";
+import * as signaling_events from "@dsyncapp/signaling-events";
 import * as async from "async";
 import * as uuid from "uuid";
 
 type Listener = (event: signaling_events.SyncEvent) => void;
 
 export class SocketClient {
+  socket_id = uuid.v4();
+
   socket?: WebSocket;
   ready?: Promise<void>;
 
   listeners = new Map<string, Listener>();
 
-  constructor(private endpoint: string, private id: string) {
+  constructor(private endpoint: string, private client_id: string) {
     this.init();
   }
 
@@ -26,7 +28,8 @@ export class SocketClient {
       this.socket!.send(
         signaling_events.encode({
           type: signaling_events.EventType.Connect,
-          id: this.id,
+          client_id: this.client_id,
+          socket_id: this.socket_id,
           name: "Lol"
         })
       );

@@ -13,5 +13,5 @@
       "path": "../events"
     }
   ],
-  "include": ["src"]
+  "include": ["src", "../app/extension.js"]
 }

@@ -9,7 +9,8 @@ export enum EventType {
 
 export const ConnectEvent = t.object({
   type: t.literal(EventType.Connect),
-  id: t.string(),
+  socket_id: t.string(),
+  client_id: t.string(),
   name: t.string()
 });
 

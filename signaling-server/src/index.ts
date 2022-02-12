@@ -1,16 +1,17 @@
-import * as signaling_events from "@dsync/signaling-events";
+import * as signaling_events from "@dsyncapp/signaling-events";
 import * as ws from "ws";
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
 
 const server = new ws.WebSocketServer({
-  path: '/',
-  host: '0.0.0.0',
+  path: "/",
+  host: "0.0.0.0",
   port: PORT
 });
 
 type Client = {
   id: string;
+  socket_id: string;
   name: string;
   socket: ws.WebSocket;
   rooms: Set<string>;
@@ -22,7 +23,7 @@ const rooms = new Map<string, Set<string>>();
 server.on("connection", (socket) => {
   console.log("Client connected");
 
-  let id: string | undefined;
+  let socket_id: string | undefined;
 
   socket.on("message", (message) => {
     const event = signaling_events.decode(message.toString());
@@ -30,13 +31,14 @@ server.on("connection", (socket) => {
       return;
     }
 
-    if (!id) {
+    if (!socket_id) {
       if (event.type === signaling_events.EventType.Connect) {
-        console.log(`Client registered itself has ${event.id}`);
+        console.log(`Client registered itself as ${event.socket_id}[${event.client_id}]`);
 
-        id = event.id;
-        clients.set(id, {
-          id: event.id,
+        socket_id = event.socket_id;
+        clients.set(socket_id, {
+          id: event.client_id,
+          socket_id: event.socket_id,
           name: event.name,
           socket: socket,
           rooms: new Set()
@@ -45,7 +47,7 @@ server.on("connection", (socket) => {
       return;
     }
 
-    const client = clients.get(id);
+    const client = clients.get(socket_id);
     if (!client) {
       console.log("Unexpected error occurred. Registered client is not present in store!");
       socket.terminate();
@@ -56,12 +58,12 @@ server.on("connection", (socket) => {
       case signaling_events.EventType.Join: {
         const room = rooms.get(event.id) || new Set();
 
-        room.add(client.id);
+        room.add(client.socket_id);
         client.rooms.add(event.id);
 
         rooms.set(event.id, room);
 
-        console.log(`Client ${id} has joined room ${event.id}`);
+        console.log(`Client ${socket_id}[${client.id}] has joined room ${event.id}`);
         return;
       }
 
@@ -71,7 +73,7 @@ server.on("connection", (socket) => {
           return;
         }
 
-        room.delete(client.id);
+        room.delete(client.socket_id);
         client.rooms.delete(event.id);
 
         if (room.size === 0) {
@@ -80,18 +82,18 @@ server.on("connection", (socket) => {
           rooms.set(event.id, room);
         }
 
-        console.log(`Client ${id} has left room ${event.id}`);
+        console.log(`Client ${socket_id}[${client.id}] has left room ${event.id}`);
         return;
       }
 
       case signaling_events.EventType.Sync: {
         const room = rooms.get(event.room_id);
         if (!room) {
-          console.log(`Client ${id} is emitting sync event to unregistered room`);
+          console.log(`Client ${client.id} is emitting sync event to unregistered room`);
           return;
         }
 
-        console.log(`Client ${id} is emitting sync event to room ${event.room_id}`);
+        console.log(`Client ${socket_id}[${client.id}] is emitting sync event to room ${event.room_id}`);
 
         room.forEach((id) => {
           const member = clients.get(id);
@@ -99,7 +101,7 @@ server.on("connection", (socket) => {
             return;
           }
 
-          if (member.id === client.id) {
+          if (member.socket_id === client.socket_id) {
             return;
           }
 
@@ -111,23 +113,23 @@ server.on("connection", (socket) => {
     }
   });
 
-  socket.on('close', () => {
-    if (!id) {
-      console.log("Client disconnected")
-      return
+  socket.on("close", () => {
+    if (!socket_id) {
+      console.log("Client disconnected");
+      return;
     }
 
-      const client = clients.get(id)
-      console.log(`Client ${id} disconnected`)
+    const client = clients.get(socket_id);
+    console.log(`Client ${socket_id}[${client?.id}] disconnected`);
 
-      if (!client) {
-        return
-      }
+    if (!client) {
+      return;
+    }
 
-      clients.delete(client.id)
+    clients.delete(socket_id);
 
-     // cleanup
-  })
+    // cleanup
+  });
 });
 
 server.on("error", (err) => {

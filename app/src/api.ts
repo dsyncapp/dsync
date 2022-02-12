@@ -1,11 +1,12 @@
-import * as signaling_events from "@dsync/signaling-events";
+import * as signaling_events from "@dsyncapp/signaling-events";
+import { RoomState } from "./room-state";
 import * as client from "./client";
 import * as uuid from "uuid";
 import * as y from "yjs";
 
 export type Room = {
   id: string;
-  document?: y.Doc;
+  state?: RoomState;
 };
 
 export type ApplicationState = {
@@ -16,13 +17,13 @@ export type ApplicationState = {
 type Listener = (state: ApplicationState) => void;
 
 export const persistRoom = (room: Room) => {
-  if (!room.document) {
+  if (!room.state) {
     return;
   }
-  localStorage.setItem(`room:${room.id}`, Buffer.from(y.encodeStateAsUpdate(room.document)).toString("base64"));
+  localStorage.setItem(`room:${room.id}`, room.state.serialize());
 };
 
-export const loadRoom = (id: string) => {
+export const loadRoom = (id: string, socket_id: string) => {
   const data = localStorage.getItem(`room:${id}`);
   if (!data) {
     return {
@@ -30,13 +31,9 @@ export const loadRoom = (id: string) => {
     };
   }
 
-  const doc = new y.Doc();
-
-  y.applyUpdate(doc, Buffer.from(data, "base64"));
-
   return {
     id: id,
-    document: doc
+    state: RoomState.deserialize(data, socket_id)
   };
 };
 
@@ -55,26 +52,29 @@ export const appendKnownRooms = (id: string) => {
   return rooms;
 };
 
-export const loadRooms = () => {
+export const loadRooms = (socket_id: string) => {
   const room_ids = loadKnownRooms();
   return room_ids.map((room_id) => {
-    return loadRoom(room_id);
+    return loadRoom(room_id, socket_id);
   });
 };
 
-const bindRoom = (client: client.SocketClient, room: Room) => {};
+const bindRoom = (client: client.SocketClient, room: Room) => {
+  // room.
+  // room.document?.on("update", (_u: any, _o: any, doc: y.Doc) => {
+  //   client.sync(room.id);
+  // });
+};
 
 export class API {
-  state: ApplicationState = {
-    rooms: loadRooms()
-  };
+  state: ApplicationState;
 
   listeners = new Map<string, Listener>();
 
   constructor(private client: client.SocketClient) {
-    this.state.rooms.forEach((room) => {
-      bindRoom(client, room);
-    });
+    this.state = {
+      rooms: loadRooms(client.socket_id)
+    };
 
     this.client.subscribe((event) => {
       const room = this.state.rooms.find((room) => room.id === event.room_id);
@@ -83,19 +83,16 @@ export class API {
         return;
       }
 
-      if (!room.document) {
+      if (!room.state) {
         if (!event.payload) {
           return;
         }
 
         let new_room = {
           id: room.id,
-          document: new y.Doc()
+          state: RoomState.deserialize(event.payload.patch, this.client.socket_id)
         };
 
-        y.applyUpdate(new_room.document, Buffer.from(event.payload.patch, "base64"));
-
-        room.document = new y.Doc();
         return this.dispatch({
           rooms: this.state.rooms.filter((room) => room.id !== new_room.id).concat(new_room)
         });
@@ -105,15 +102,12 @@ export class API {
         this.client.emit({
           type: signaling_events.EventType.Sync,
           room_id: event.room_id,
-          payload: {
-            vector: Buffer.from(y.encodeStateVector(room.document)).toString("base64"),
-            patch: Buffer.from(y.encodeStateAsUpdate(room.document)).toString("base64")
-          }
+          payload: room.state.createPatch()
         });
         return;
       }
 
-      y.applyUpdate(room.document, Buffer.from(event.payload.patch, "base64"));
+      room.state.applyPatch(event.payload.patch);
     });
   }
 
@@ -139,12 +133,11 @@ export class API {
 
     const room = {
       id,
-      document: doc
+      state: new RoomState(doc, this.client.socket_id)
     };
 
     persistRoom(room);
     appendKnownRooms(id);
-    bindRoom(this.client, room);
 
     this.dispatch({
       rooms: [...this.state.rooms, room]
@@ -153,15 +146,55 @@ export class API {
     this.activateRoom(room.id);
   };
 
+  observer: (() => void) | undefined;
   activateRoom = (id: string) => {
+    const room = this.state.rooms.find((room) => room.id === id);
+    if (!room) {
+      return;
+    }
+
     if (this.state.active_room) {
+      this.observer?.();
       this.client.leave(id);
     }
     this.client.join(id);
+    // this.observer = room.state?.observe(() => {
+
+    // })
     this.dispatch({
       active_room: id
     });
   };
 
-  sync = (room_id: string) => {};
+  joinRoom = (room_id: string) => {
+    const room = {
+      id: room_id
+    };
+
+    persistRoom(room);
+    appendKnownRooms(room.id);
+
+    this.dispatch({
+      rooms: this.state.rooms
+        .filter((room) => room.id !== room_id)
+        .concat({
+          id: room_id
+        })
+    });
+
+    this.activateRoom(room.id);
+  };
+
+  sync = (room_id: string) => {
+    const room = this.state.rooms.find((room) => room.id === room_id);
+    if (!room) {
+      return;
+    }
+
+    this.client.emit({
+      type: signaling_events.EventType.Sync,
+      room_id: room.id,
+      payload: room.state?.createPatch() || null
+    });
+  };
 }
