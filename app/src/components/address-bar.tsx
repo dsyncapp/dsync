@@ -15,22 +15,33 @@ const JoinRoomForm: React.FC<JoinRoomProps> = (props) => {
   return (
     <>
       <Next.Modal.Header>
-        <p>Join Room</p>
+        <p>Join New Room</p>
       </Next.Modal.Header>
 
-      <Next.Modal.Body>
+      <Next.Modal.Body style={{ alignItems: "center" }}>
+        <p>Enter Room ID to start watching together</p>
+
         <Next.Input
           animated={false}
-          labelLeft="room id"
+          status="primary"
+          autoFocus
+          labelLeft="Room ID"
           fullWidth
           onChange={(e) => setRoomId(e.target.value)}
           value={room_id}
+          onKeyPress={(e) => {
+            if (e.code === "Enter") {
+              if (room_id) {
+                props.onJoin(room_id);
+              }
+            }
+          }}
         />
       </Next.Modal.Body>
 
-      <Next.Modal.Footer>
-        <Next.Button flat auto onClick={() => props.onJoin(room_id)}>
-          Join
+      <Next.Modal.Footer justify="center">
+        <Next.Button flat bordered color="secondary" onClick={() => props.onJoin(room_id)}>
+          JOIN!
         </Next.Button>
       </Next.Modal.Footer>
     </>
@@ -130,7 +141,7 @@ export const AddressBar: React.FC<Props> = (props) => {
         <Next.Button
           size="xs"
           flat
-          color="secondary"
+          color="warning"
           style={{ textOverflow: "ellipsis", marginLeft: 10 }}
           onClick={() => {
             navigator.clipboard.writeText(props.active_room);
@@ -146,11 +157,11 @@ export const AddressBar: React.FC<Props> = (props) => {
             Join Room
           </Next.Button>
 
-          <Next.Button auto flat size="xs" icon={<Icons.Plus />} onClick={props.onCreateRoomClicked} />
+          <Next.Button auto flat color="success" size="xs" icon={<Icons.Plus />} onClick={props.onCreateRoomClicked} />
         </Next.StyledButtonGroup>
       </Next.Grid>
 
-      <Next.Modal {...join_modal.bindings}>
+      <Next.Modal blur {...join_modal.bindings}>
         <JoinRoomForm
           onJoin={(room_id) => {
             props.onRoomJoined(room_id);

@@ -55,6 +55,17 @@ export const ActiveRoom: React.FC<Props> = (props) => {
     previous_state.current = props.room_state;
   }, [props.room_state]);
 
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      video_manager.current?.getState().then((status) => {
+        // console.log(status);
+      });
+    }, 500);
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+
   const onManagerLoaded = (manager: video_managers.VideoManager) => {
     video_manager.current = manager;
 
@@ -65,22 +76,29 @@ export const ActiveRoom: React.FC<Props> = (props) => {
     // }
   };
 
-  const hooks: video_managers.VideoManagerHooks = {
-    onNavigate: (source) => {
-      console.log("webview navigated");
-      props.room.state?.setSource(source);
-    },
-    onPause: () => {
-      console.log("video paused");
-      props.room.state?.pause();
-    },
-    onResume: () => {
-      console.log("video resumed", active_source);
-      props.room.state?.resume();
-    },
-    onSeek: (time) => {
-      console.log("seeked to new position", time);
-      props.room.state?.seek(time);
+  const handleVideoEvent: video_managers.VideoEventHandler = (event) => {
+    switch (event.type) {
+      case video_managers.PlayerEventType.Navigate: {
+        console.log("webview navigated");
+        // @ts-ignore
+        return props.room.state?.setSource(event.url);
+      }
+
+      case video_managers.PlayerEventType.Play: {
+        console.log("video resumed");
+        return props.room.state?.resume();
+      }
+      case video_managers.PlayerEventType.Pause: {
+        console.log("video paused");
+        return props.room.state?.pause();
+      }
+      case video_managers.PlayerEventType.Seeking: {
+        console.log("seeked to new position", event.status.time);
+        return props.room.state?.seek(event.status.time);
+      }
+      default: {
+        return console.log(event.type, event.status);
+      }
     }
   };
 
@@ -92,11 +110,11 @@ export const ActiveRoom: React.FC<Props> = (props) => {
         break;
       }
 
-      source = <WebSource source={active_source} ref={onManagerLoaded} {...hooks} />;
+      source = <WebSource source={active_source} ref={onManagerLoaded} onEvent={handleVideoEvent} />;
       break;
     }
     case SourceType.Manual: {
-      source = <ManualSource ref={onManagerLoaded} {...hooks} />;
+      source = <ManualSource ref={onManagerLoaded} onEvent={handleVideoEvent} />;
       break;
     }
   }

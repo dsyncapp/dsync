@@ -8,6 +8,9 @@ export const useRoomState = (state?: api.room_state.RoomState) => {
 
   React.useEffect(() => {
     if (!state) {
+      if (room_state) {
+        setRoomState(undefined);
+      }
       return;
     }
 

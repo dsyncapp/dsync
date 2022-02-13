@@ -1,22 +1,35 @@
 import * as video_manager from "../video-managers";
 import * as React from "react";
 
-type Props = video_manager.VideoManagerHooks & {
+type Props =  {
+  onEvent: video_manager.VideoEventHandler
   url: string;
 };
 
 export const VideoSource = React.forwardRef<video_manager.VideoManager, Props>((props, ref) => {
+  const video = React.useRef<HTMLVideoElement | null>(null);
+
   return (
     <video
-      ref={(video) => {
-        if (video) {
-          const manager = video_manager.createHTMLVideoManager(video, props);
+      onClick={() => {
+        if (video.current?.paused) {
+          video.current.play();
+        } else {
+          video.current?.pause();
+        }
+      }}
+      ref={(element) => {
+        if (element) {
+          if (!video.current || video.current !== element) {
+            const manager = video_manager.createHTMLVideoManager(element, props.onEvent);
+            video.current = element;
 
-          if (ref) {
-            if (typeof ref === "function") {
-              ref(manager);
-            } else {
-              ref.current = manager;
+            if (ref) {
+              if (typeof ref === "function") {
+                ref(manager);
+              } else {
+                ref.current = manager;
+              }
             }
           }
         }

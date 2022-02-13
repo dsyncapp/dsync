@@ -12,14 +12,14 @@ export const joinKnownRoom = (room_id: string) => {
     return;
   }
 
-  state.ActiveRoom.set(room_id);
-
   if (state.ActiveRoom.value) {
     state.socket.emit({
       type: signaling_events.EventType.Leave,
       id: state.ActiveRoom.value
     });
   }
+
+  state.ActiveRoom.set(room_id);
 
   state.socket.emit({
     type: signaling_events.EventType.Join,
@@ -41,7 +41,7 @@ export const joinNewRoom = (room_id: string) => {
 const observers = new Map<string, () => void>();
 
 export const observeRoom = (room: state.Room) => {
-  console.log("observing room", room.id, room.state);
+  console.log("observing room", room.id);
   if (!room.state) {
     return;
   }

@@ -8,6 +8,15 @@ const emit = (event) => {
 
 let player;
 
+const getPlayerStatus = () => {
+  return {
+    paused: player.paused,
+    seeking: player.seeking,
+    time: player.currentTime,
+    duration: player.duration
+  };
+};
+
 electron.ipcRenderer.on("dsync", (_e, event) => {
   if (!player) {
     return;
@@ -20,7 +29,7 @@ electron.ipcRenderer.on("dsync", (_e, event) => {
       }
       return player.pause();
     }
-    case "resume": {
+    case "play": {
       if (!player.paused) {
         return;
       }
@@ -30,32 +39,37 @@ electron.ipcRenderer.on("dsync", (_e, event) => {
       player.currentTime = event.time;
       return;
     }
+    case "get-status": {
+      return emit({
+        type: "status-response",
+        status: getPlayerStatus()
+      });
+    }
   }
 });
 
 const onPlayerLoaded = (new_player) => {
+  console.log("Player found", new_player);
+
   player = new_player;
   emit({
     type: "player-loaded",
-    frame_id: electron.webFrame.routingId
+    frame_id: electron.webFrame.routingId,
+    player_details: {
+      id: player.getAttribute("id"),
+      name: player.getAttribute("name"),
+      class_name: player.getAttribute("className"),
+    }
   });
 
-  player.addEventListener("pause", () => {
-    emit({
-      type: "pause"
-    });
-  });
-
-  player.addEventListener("play", () => {
-    emit({
-      type: "resume"
-    });
-  });
-
-  player.addEventListener("seeking", () => {
-    emit({
-      type: "seek",
-      time: player.currentTime
+  const events = ["waiting", "play", "pause", "playing", "seeking", "seek"];
+  events.map((event) => {
+    player.addEventListener(event, () => {
+      emit({
+        type: "player-event",
+        event: event,
+        status: getPlayerStatus()
+      });
     });
   });
 };

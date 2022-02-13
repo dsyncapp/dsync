@@ -4,7 +4,9 @@ import * as React from "react";
 
 import VideoSource from "./video-source";
 
-type Props = video_manager.VideoManagerHooks;
+type Props = {
+  onEvent: video_manager.VideoEventHandler;
+};
 
 export const ManualSource = React.forwardRef<video_manager.VideoManager, Props>((props, ref) => {
   const file_input = React.useRef<HTMLInputElement | null>(null);
@@ -18,7 +20,7 @@ export const ManualSource = React.forwardRef<video_manager.VideoManager, Props>(
   return (
     <>
       {file_url ? (
-        <VideoSource {...props} ref={ref} url={file_url} />
+        <VideoSource onEvent={props.onEvent} ref={ref} url={file_url} />
       ) : (
         <Next.Button
           onClick={() => {

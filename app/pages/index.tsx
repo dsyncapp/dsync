@@ -39,6 +39,8 @@ const Home: NextPage = () => {
     <div style={{ height: "100vh", width: "100vw" }}>
       {room && room_state ? (
         <Room rooms={rooms} room={room} room_state={room_state} />
+      ) : room ? (
+        <p>Room loading</p>
       ) : (
         <RoomSelector
           rooms={rooms}

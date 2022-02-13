@@ -1,7 +1,8 @@
 import * as video_manager from "../video-managers";
 import * as React from "react";
 
-type Props = video_manager.VideoManagerHooks & {
+type Props = {
+  onEvent: video_manager.VideoEventHandler;
   source: string;
 };
 
@@ -17,8 +18,15 @@ export const WebSource = React.forwardRef<video_manager.VideoManager, Props>((pr
         if (element) {
           if (!webview.current || webview.current !== element) {
             console.log("creating new web view video manager");
-            manager.current = video_manager.createWebViewVideoManager(element, props);
+            manager.current = video_manager.createWebViewVideoManager(element, props.onEvent);
             webview.current = element;
+
+            element.addEventListener("enter-html-full-screen", () => {
+              document.dispatchEvent(new Event("webview-enter-full-screen"));
+            });
+            element.addEventListener("leave-html-full-screen", () => {
+              document.dispatchEvent(new Event("webview-exit-full-screen"));
+            });
           }
 
           if (ref) {
