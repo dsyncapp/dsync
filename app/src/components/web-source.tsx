@@ -7,21 +7,25 @@ type Props = video_manager.VideoManagerHooks & {
 
 export const WebSource = React.forwardRef<video_manager.VideoManager, Props>((props, ref) => {
   const webview = React.useRef<HTMLWebViewElement | null>(null);
+  const manager = React.useRef<video_manager.VideoManager | null>(null);
 
   return (
     <webview
       // @ts-ignore
       nodeintegrationinsubframes="true"
       ref={(element) => {
-        webview.current = element;
         if (element) {
-          const manager = video_manager.createWebViewVideoManager(element, props);
+          if (!webview.current || webview.current !== element) {
+            console.log("creating new web view video manager");
+            manager.current = video_manager.createWebViewVideoManager(element, props);
+            webview.current = element;
+          }
 
           if (ref) {
             if (typeof ref === "function") {
-              ref(manager);
+              ref(manager.current);
             } else {
-              ref.current = manager;
+              ref.current = manager.current;
             }
           }
         }

@@ -1,11 +1,12 @@
 import * as Next from "@nextui-org/react";
 import styled from "styled-components";
+import { Room } from "../state";
 import * as React from "react";
-import { Room } from "../api";
 
 type Props = {
   rooms: Room[];
   onRoomSelected: (room: Room) => void;
+  onCreateRoomClicked: () => void;
 };
 
 const Container = styled(Next.Container)`
@@ -19,11 +20,6 @@ export const RoomSelector: React.FC<Props> = (props) => {
     <Container>
       <Next.Text>No Room Selected</Next.Text>
 
-      {/* <Next.Button placeholder="Select Room" size="xl">
-        {" "}
-        SelectRoom
-      </Next.Button> */}
-
       {props.rooms.map((room) => {
         return (
           <Next.Row key={room.id}>
@@ -33,6 +29,10 @@ export const RoomSelector: React.FC<Props> = (props) => {
           </Next.Row>
         );
       })}
+
+      <Next.Button flat auto onClick={props.onCreateRoomClicked}>
+        New Room
+      </Next.Button>
     </Container>
   );
 };

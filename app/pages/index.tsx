@@ -1,26 +1,52 @@
 import * as Next from "@nextui-org/react";
 import type { NextPage } from "next";
 import * as React from "react";
-import Head from "next/head";
 
-import { StateContext } from "../src/context";
+import * as state from "../src/state";
+import * as hooks from "../src/hooks";
+import * as api from "../src/api";
 
 import RoomSelector from "../src/components/room-selector";
 import Room from "../src/components/room";
 
 const Home: NextPage = () => {
-  const [context, api] = React.useContext(StateContext);
+  const [loading, setLoading] = React.useState(false);
+  const { rooms, room } = state.useRooms();
 
-  const room = context.active_room && context.rooms.find((room) => room.id === context.active_room);
+  const room_state = hooks.useRoomState(room?.state);
+
+  React.useEffect(() => {
+    setLoading(true);
+
+    (async () => {
+      try {
+        const rooms = await api.db.getRooms();
+        rooms.forEach(api.rooms.observeRoom);
+        state.Rooms.merge(rooms);
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return api.rooms.startRoomSyncLoop();
+  }, []);
+
+  if (loading) {
+    return <p>Loading</p>;
+  }
 
   return (
-    <Next.Container fluid style={{ padding: 0, margin: 0, height: '100vh' }}>
-      {room ? (
-        <Room room={room} />
+    <div style={{ height: "100vh", width: "100vw" }}>
+      {room && room_state ? (
+        <Room rooms={rooms} room={room} room_state={room_state} />
       ) : (
-        <RoomSelector rooms={context.rooms} onRoomSelected={(room) => api.activateRoom(room.id)} />
+        <RoomSelector
+          rooms={rooms}
+          onRoomSelected={(room) => api.rooms.joinKnownRoom(room.id)}
+          onCreateRoomClicked={api.rooms.createRoom}
+        />
       )}
-    </Next.Container>
+    </div>
   );
 };
 

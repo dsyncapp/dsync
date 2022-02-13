@@ -29,6 +29,11 @@ export const createWebViewVideoManager = (
 ): video_manager.VideoManager => {
   const frames = new Set<string>();
 
+  webview.addEventListener("did-navigate-in-page", (event: any) => {
+    // @ts-ignore
+    hooks.onNavigate(webview.getURL());
+  });
+
   webview.addEventListener("ipc-message", (message: any) => {
     if (message.channel !== "dsync") {
       return;
@@ -63,18 +68,21 @@ export const createWebViewVideoManager = (
 
   return {
     pause: () => {
+      console.log("pausing video")
       sendEvent({
         type: IPCEventType.Pause
       });
     },
 
     resume: () => {
+      console.log("resuming video")
       sendEvent({
         type: IPCEventType.Resume
       });
     },
 
     seek: (time: number) => {
+      console.log("seeking")
       sendEvent({
         type: IPCEventType.Seek,
         time: time

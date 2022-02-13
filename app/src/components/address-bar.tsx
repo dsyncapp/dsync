@@ -1,8 +1,9 @@
 import * as Next from "@nextui-org/react";
 import * as Icons from "@geist-ui/icons";
-import styled from "styled-components";
+import { Room } from "../state";
 import * as React from "react";
-import { Room } from "../api";
+
+import * as hooks from "../hooks";
 
 type JoinRoomProps = {
   onJoin: (room_id: string) => void;
@@ -59,20 +60,14 @@ type Props = {
 export const AddressBar: React.FC<Props> = (props) => {
   const join_modal = Next.useModal();
 
-  const [fullscreen, setFullscreen] = React.useState(false);
+  const fullscreen = hooks.useFullscreenObserver();
 
   const source_input = React.useRef<HTMLInputElement | null>(null);
   const [source, setSource] = React.useState("");
 
   React.useEffect(() => {
-    const listener = () => {
-      setFullscreen(document.fullscreenEnabled);
-    };
-    document.addEventListener("fullscreenchange", listener);
-    return () => {
-      document.removeEventListener("fullscreenchange", listener);
-    };
-  }, []);
+    setSource(props.active_source);
+  }, [props.active_source]);
 
   const getSourceIcon = () => {
     switch (props.source_type) {
@@ -132,7 +127,15 @@ export const AddressBar: React.FC<Props> = (props) => {
       </Next.Grid>
 
       <Next.Grid>
-        <Next.Button size="xs" flat color="secondary" style={{ textOverflow: "ellipsis", marginLeft: 10 }}>
+        <Next.Button
+          size="xs"
+          flat
+          color="secondary"
+          style={{ textOverflow: "ellipsis", marginLeft: 10 }}
+          onClick={() => {
+            navigator.clipboard.writeText(props.active_room);
+          }}
+        >
           {props.active_room}
         </Next.Button>
       </Next.Grid>

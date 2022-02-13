@@ -1,88 +1,86 @@
 import * as video_managers from "../video-managers";
-import * as Next from "@nextui-org/react";
+import styled from "styled-components";
+import * as state from "../state";
 import * as React from "react";
-import { Room } from "../api";
-
-import { StateContext } from "../context";
+import * as api from "../api";
 
 import AddressBar, { SourceType } from "./address-bar";
 import ManualSource from "./manual-source";
 import WebSource from "./web-source";
 
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  width: 100%;
+  height: 100%;
+`;
+
 type Props = {
-  room: Room;
+  room_state: api.room_state.SerializedRoomState;
+  room: state.Room;
+  rooms: state.Room[];
 };
 
 export const ActiveRoom: React.FC<Props> = (props) => {
   const video_manager = React.useRef<video_managers.VideoManager | null>(null);
 
-  const [active_source, setActiveSource] = React.useState("");
-
+  const previous_state = React.useRef<api.room_state.SerializedRoomState | undefined>();
   const [source_type, setSourceType] = React.useState(SourceType.Web);
 
-  const [context, api] = React.useContext(StateContext);
+  const active_source = props.room_state.metadata.source;
+
+  const source_state = props.room_state.sources[active_source];
+  const previous_source_state = previous_state.current?.sources[active_source];
 
   React.useEffect(() => {
-    const interval = setInterval(() => {
-      api.sync(props.room.id);
-    }, 1000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [props.room.id]);
-
-  React.useEffect(() => {
-    if (!props.room.state) {
+    if (!source_state) {
       return;
     }
 
-    return props.room.state.observe(active_source, (current, previous, changed) => {
-      if (changed.includes("playing")) {
-        if (current.playing === previous.playing) {
-          return;
-        }
-        if (current.playing) {
-          video_manager.current?.resume();
-        } else {
-          video_manager.current?.pause();
-        }
+    if (source_state.playing !== previous_source_state?.playing) {
+      if (source_state.playing) {
+        video_manager.current?.resume();
+      } else {
+        video_manager.current?.pause();
       }
+    }
 
-      if (changed.includes("position")) {
-        if (current.position && current.position !== previous.position) {
-          video_manager.current?.seek(current.position);
-        }
+    if (source_state.position !== previous_source_state?.position) {
+      if (source_state.position) {
+        video_manager.current?.seek(source_state.position);
       }
-    });
-  }, [active_source, props.room]);
+    }
+
+    previous_state.current = props.room_state;
+  }, [props.room_state]);
 
   const onManagerLoaded = (manager: video_managers.VideoManager) => {
     video_manager.current = manager;
 
-    console.log("loaded", active_source, props.room.state)
-    if (active_source && props.room.state) {
-      const state = props.room.state.read(active_source);
-      if (state.playing) {
-        video_manager.current.resume();
-      } else {
-        video_manager.current.pause();
-      }
-    }
+    // if (source_state.playing) {
+    //   video_manager.current.resume();
+    // } else {
+    //   video_manager.current.pause();
+    // }
   };
 
   const hooks: video_managers.VideoManagerHooks = {
+    onNavigate: (source) => {
+      console.log("webview navigated");
+      props.room.state?.setSource(source);
+    },
     onPause: () => {
-      console.log("paused");
-      props.room.state?.pause(active_source);
+      console.log("video paused");
+      props.room.state?.pause();
     },
     onResume: () => {
-      console.log("resumed");
-      props.room.state?.resume(active_source);
+      console.log("video resumed", active_source);
+      props.room.state?.resume();
     },
     onSeek: (time) => {
       console.log("seeked to new position", time);
-      props.room.state?.seek(active_source, time);
+      props.room.state?.seek(time);
     }
   };
 
@@ -104,26 +102,23 @@ export const ActiveRoom: React.FC<Props> = (props) => {
   }
 
   return (
-    <Next.Container style={{ margin: 0, padding: 0, height: "100%" }}>
+    <Container>
       <AddressBar
-        rooms={context.rooms}
+        rooms={props.rooms}
         active_room={props.room.id}
-        onRoomClicked={(room) => api.activateRoom(room.id)}
-        onCreateRoomClicked={() => api.createRoom()}
-        onRoomJoined={(id) => api.joinRoom(id)}
+        onRoomClicked={(room) => api.rooms.joinKnownRoom(room.id)}
+        onCreateRoomClicked={api.rooms.createRoom}
+        onRoomJoined={api.rooms.joinNewRoom}
         source_type={source_type}
         onSourceTypeChange={setSourceType}
         active_source={active_source}
-        onActiveSourceChange={setActiveSource}
+        onActiveSourceChange={(source) => {
+          props.room.state?.setSource(source);
+        }}
       />
 
       {source}
-
-      {/* <Next.Button onClick={reload}>Reload</Next.Button>
-
-      <Next.Button onClick={() => video_manager.current?.resume()}>Resume</Next.Button>
-      <Next.Button onClick={() => video_manager.current?.pause()}>Pause</Next.Button> */}
-    </Next.Container>
+    </Container>
   );
 };
 

@@ -1,4 +1,5 @@
 export type VideoManagerHooks = {
+  onNavigate: (source: string) => void;
   onSeek: (playback: number) => void;
   onPause: () => void;
   onResume: () => void;

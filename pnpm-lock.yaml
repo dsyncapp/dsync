@@ -16,8 +16,10 @@ importers:
     specifiers:
       '@dsyncapp/signaling-events': ^1.0.0
       '@geist-ui/icons': ^1.0.1
+      '@hookstate/core': ^3.0.13
       '@nextui-org/react': ^1.0.2-beta.2
       '@types/async': ^3.2.12
+      '@types/lodash': ^4.14.178
       '@types/node': 17.0.15
       '@types/react': 17.0.39
       '@types/styled-components': ^5.1.22
@@ -25,6 +27,8 @@ importers:
       async: ^3.2.3
       eslint: 8.8.0
       eslint-config-next: 12.0.10
+      idb: ^7.0.0
+      lodash: ^4.17.21
       next: 12.0.10
       react: 17.0.2
       react-dom: 17.0.2
@@ -35,10 +39,13 @@ importers:
     dependencies:
       '@dsyncapp/signaling-events': link:../events
       '@geist-ui/icons': 1.0.1_react@17.0.2
+      '@hookstate/core': 3.0.13_react@17.0.2
       '@nextui-org/react': 1.0.2-beta.3_react-dom@17.0.2+react@17.0.2
       '@types/async': 3.2.12
       '@types/uuid': 8.3.4
       async: 3.2.3
+      idb: 7.0.0
+      lodash: 4.17.21
       next: 12.0.10_react-dom@17.0.2+react@17.0.2
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
@@ -46,6 +53,7 @@ importers:
       uuid: 8.3.2
       yjs: 13.5.27
     devDependencies:
+      '@types/lodash': 4.14.178
       '@types/node': 17.0.15
       '@types/react': 17.0.39
       '@types/styled-components': 5.1.22
@@ -287,6 +295,15 @@ packages:
       react: 17.0.2
     dev: false
 
+  /@hookstate/core/3.0.13_react@17.0.2:
+    resolution: {integrity: sha512-dzx6Rz1M5/c/F1zPEspnONMUvkJD1BzepuuGkqoh+KDNhgWrklGW9OVQAuK+DZFyamCTb3/1GW2Vu4IDhXMexA==}
+    engines: {node: '>=8', npm: '>=5'}
+    peerDependencies:
+      react: ^16.8.6 || ^17.0.0
+    dependencies:
+      react: 17.0.2
+    dev: false
+
   /@humanwhocodes/config-array/0.9.3:
     resolution: {integrity: sha512-3xSMlXHh03hCcCmFc0rbKp3Ivt2PFEJnQUJDDMTJQ2wkECZWdq4GePs2ctc5H8zV+cHPaq8k2vU8mrQjA6iHdQ==}
     engines: {node: '>=10.10.0'}
@@ -481,6 +498,10 @@ packages:
 
   /@types/json5/0.0.29:
     resolution: {integrity: sha1-7ihweulOEdK4J7y+UnC86n8+ce4=}
+    dev: true
+
+  /@types/lodash/4.14.178:
+    resolution: {integrity: sha512-0d5Wd09ItQWH1qFbEyQ7oTQ3GZrMfth5JkbN3EvTKLXcHLRDSXeLnlvlOn0wvxVIwK5o2M8JzP/OWz7T3NRsbw==}
     dev: true
 
   /@types/node/14.18.10:
@@ -1687,6 +1708,10 @@ packages:
 
   /http-cache-semantics/4.1.0:
     resolution: {integrity: sha512-carPklcUh7ROWRK7Cv27RPtdhYhUsela/ue5/jKzjegVvXDqM2ILE9Q2BGn9JZJh1g87cp56su/FgQSzcWS8cQ==}
+    dev: false
+
+  /idb/7.0.0:
+    resolution: {integrity: sha512-jSx0WOY9Nj+QzP6wX5e7g64jqh8ExtDs/IAuOrOEZCD/h6+0HqyrKsDMfdJc0hqhSvh0LsrwqrkDn+EtjjzSRA==}
     dev: false
 
   /ignore/4.0.6:
