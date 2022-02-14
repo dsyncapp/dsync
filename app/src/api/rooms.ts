@@ -82,7 +82,7 @@ export const observeRoom = (room: state.Room) => {
   observers.set(room.id, observer);
 };
 
-export const createRoom = () => {
+export const createRoom = (name: string) => {
   const id = uuid.v4();
   const doc = new y.Doc();
 
@@ -90,6 +90,8 @@ export const createRoom = () => {
     id,
     state: new RoomState(doc)
   };
+
+  room.state.setName(name);
 
   db.upsertRoom(room);
   state.Rooms.merge([room]);

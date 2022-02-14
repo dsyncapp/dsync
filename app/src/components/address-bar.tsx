@@ -4,6 +4,7 @@ import { Room } from "../state";
 import * as React from "react";
 import * as api from "../api";
 
+import CreateRoomModal from "./create-room-modal";
 import JoinRoomModal from "./join-room-modal";
 import * as hooks from "../hooks";
 
@@ -18,7 +19,7 @@ type Props = {
   room_state: api.room_state.SerializedRoomState;
 
   onRoomClicked: (room: Room) => void;
-  onCreateRoomClicked: () => void;
+  onCreateRoomClicked: (name: string) => void;
   onRoomJoined: (room_id: string) => void;
   onLeaveRoomClicked: () => void;
 
@@ -31,6 +32,7 @@ type Props = {
 
 export const AddressBar: React.FC<Props> = (props) => {
   const join_modal = Next.useModal();
+  const create_modal = Next.useModal();
 
   const fullscreen = hooks.useFullscreenObserver();
 
@@ -99,17 +101,19 @@ export const AddressBar: React.FC<Props> = (props) => {
       </Next.Grid>
 
       <Next.Grid>
-        <Next.Button
-          size="xs"
-          flat
-          color="warning"
-          style={{ textOverflow: "ellipsis", marginLeft: 10 }}
-          onClick={() => {
-            navigator.clipboard.writeText(props.active_room);
-          }}
-        >
-          {props.active_room}
-        </Next.Button>
+        <Next.Tooltip content="Room ID Copied to Clipboard!" trigger="click" placement="bottom" color="primary">
+          <Next.Button
+            size="xs"
+            flat
+            color="warning"
+            style={{ textOverflow: "ellipsis", marginLeft: 10 }}
+            onClick={() => {
+              navigator.clipboard.writeText(props.active_room);
+            }}
+          >
+            room: {props.room_state.metadata.name || props.active_room}
+          </Next.Button>
+        </Next.Tooltip>
       </Next.Grid>
 
       <Next.Grid>
@@ -130,7 +134,14 @@ export const AddressBar: React.FC<Props> = (props) => {
             Join Room
           </Next.Button>
 
-          <Next.Button auto flat color="success" size="xs" icon={<Icons.Plus />} onClick={props.onCreateRoomClicked} />
+          <Next.Button
+            auto
+            flat
+            color="success"
+            size="xs"
+            icon={<Icons.Plus />}
+            onClick={() => create_modal.setVisible(true)}
+          />
         </Next.StyledButtonGroup>
       </Next.Grid>
 
@@ -150,6 +161,14 @@ export const AddressBar: React.FC<Props> = (props) => {
         onJoin={(room_id) => {
           props.onRoomJoined(room_id);
           join_modal.setVisible(false);
+        }}
+      />
+
+      <CreateRoomModal
+        {...create_modal.bindings}
+        onCreate={(name) => {
+          props.onCreateRoomClicked(name);
+          create_modal.setVisible(false);
         }}
       />
     </Next.Grid.Container>

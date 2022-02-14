@@ -2,33 +2,33 @@ import * as Next from "@nextui-org/react";
 import * as React from "react";
 
 type Props = Omit<Partial<Next.ModalProps>, "blur"> & {
-  onJoin: (room_id: string) => void;
+  onCreate: (name: string) => void;
 };
 
-export const JoinRoomModal: React.FC<Props> = (props) => {
-  const [room_id, setRoomId] = React.useState("");
+export const CreateRoomModal: React.FC<Props> = (props) => {
+  const [room_name, setRoomName] = React.useState("");
 
   return (
     <Next.Modal blur {...props}>
       <Next.Modal.Header>
-        <p>Join New Room</p>
+        <p>Create a New Room</p>
       </Next.Modal.Header>
 
       <Next.Modal.Body style={{ alignItems: "center" }}>
-        <p>Enter Room ID to start watching together</p>
+        <p>Give your room a name!</p>
 
         <Next.Input
           animated={false}
           status="primary"
           autoFocus
-          labelLeft="Room ID"
+          labelLeft="Name"
           fullWidth
-          onChange={(e) => setRoomId(e.target.value)}
-          value={room_id}
+          onChange={(e) => setRoomName(e.target.value)}
+          value={room_name}
           onKeyPress={(e) => {
             if (e.code === "Enter") {
-              if (room_id) {
-                props.onJoin(room_id);
+              if (room_name) {
+                props.onCreate(room_name);
               }
             }
           }}
@@ -36,12 +36,12 @@ export const JoinRoomModal: React.FC<Props> = (props) => {
       </Next.Modal.Body>
 
       <Next.Modal.Footer justify="center">
-        <Next.Button disabled={!room_id} flat bordered color="secondary" onClick={() => props.onJoin(room_id)}>
-          JOIN!
+        <Next.Button disabled={!room_name} flat bordered color="secondary" onClick={() => props.onCreate(room_name)}>
+          CREATE!
         </Next.Button>
       </Next.Modal.Footer>
     </Next.Modal>
   );
 };
 
-export default JoinRoomModal;
+export default CreateRoomModal;

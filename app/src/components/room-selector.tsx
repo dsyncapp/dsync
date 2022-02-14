@@ -4,12 +4,13 @@ import styled from "styled-components";
 import { Room } from "../state";
 import * as React from "react";
 
+import CreateRoomModal from "./create-room-modal";
 import JoinRoomModal from "./join-room-modal";
 
 type Props = {
   rooms: Room[];
   onRoomSelected: (room: Room) => void;
-  onCreateRoomClicked: () => void;
+  onCreateRoomClicked: (name: string) => void;
   onRoomJoined: (room_id: string) => void;
   onRoomDelete: (room_id: string) => void;
 };
@@ -28,6 +29,7 @@ const Header = styled(Next.Container)`
 
 export const RoomSelector: React.FC<Props> = (props) => {
   const join_modal = Next.useModal();
+  const create_modal = Next.useModal();
 
   return (
     <Container>
@@ -39,7 +41,7 @@ export const RoomSelector: React.FC<Props> = (props) => {
             Join Room
           </Next.Button>
 
-          <Next.Button flat auto bordered onClick={props.onCreateRoomClicked}>
+          <Next.Button flat auto bordered onClick={() => create_modal.setVisible(true)}>
             Create Room
           </Next.Button>
         </Next.Button.Group>
@@ -84,6 +86,14 @@ export const RoomSelector: React.FC<Props> = (props) => {
         onJoin={(room_id) => {
           props.onRoomJoined(room_id);
           join_modal.setVisible(false);
+        }}
+      />
+
+      <CreateRoomModal
+        {...create_modal.bindings}
+        onCreate={(name) => {
+          props.onCreateRoomClicked(name);
+          create_modal.setVisible(false);
         }}
       />
     </Container>
