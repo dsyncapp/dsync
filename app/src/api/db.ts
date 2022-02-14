@@ -34,6 +34,13 @@ export const upsertRoom = async (room: defs.Room) => {
   db.close();
 };
 
+export const deleteRoom = async (room_id: string) => {
+  const db = await openDB();
+  await db.delete("rooms", room_id);
+  console.log("room deleted");
+  db.close();
+};
+
 export const getRooms = async (): Promise<defs.Room[]> => {
   const db = await openDB();
   const rooms = await db.getAll("rooms");

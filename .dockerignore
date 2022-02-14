@@ -1,0 +1,10 @@
+.idea
+.vscode
+.git
+
+node_modules
+
+dist
+release
+out
+.next

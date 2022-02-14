@@ -14,12 +14,16 @@ const loadURL = (url: string) => {
   });
 
   win.loadURL(url);
+
+  return win;
 };
 
 electron.app.on("ready", async () => {
   if (!electron.app.isPackaged) {
-    loadURL("http://localhost:3000");
-    loadURL("http://localhost:3000");
+    const win1 = loadURL("http://localhost:3000");
+    const win2 = loadURL("http://localhost:3000");
+    win1.webContents.openDevTools();
+    win2.webContents.openDevTools();
   } else {
     electron.protocol.interceptFileProtocol("file", (request, callback) => {
       const url = request.url.substring(8);

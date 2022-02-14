@@ -94,7 +94,16 @@ export const ActiveRoom: React.FC<Props> = (props) => {
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      video_manager.current?.getState().then((status) => {
+      if (!video_manager.current) {
+        props.room.state?.updateStatus({
+          paused: true,
+          seeking: false,
+          time: 0
+        });
+        return;
+      }
+
+      video_manager.current.getState().then((status) => {
         props.room.state?.updateStatus(status);
 
         if (!status.paused && !api.utils.allPeersReady(props.room_state.peers)) {

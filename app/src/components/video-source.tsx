@@ -11,13 +11,7 @@ export const VideoSource = React.forwardRef<video_manager.VideoManager, Props>((
 
   return (
     <video
-      onClick={() => {
-        if (video.current?.paused) {
-          video.current.play();
-        } else {
-          video.current?.pause();
-        }
-      }}
+      controls
       ref={(element) => {
         if (element) {
           if (!video.current || video.current !== element) {

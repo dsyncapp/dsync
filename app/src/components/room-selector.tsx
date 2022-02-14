@@ -1,4 +1,5 @@
 import * as Next from "@nextui-org/react";
+import * as Icons from "@geist-ui/icons";
 import styled from "styled-components";
 import { Room } from "../state";
 import * as React from "react";
@@ -10,10 +11,19 @@ type Props = {
   onRoomSelected: (room: Room) => void;
   onCreateRoomClicked: () => void;
   onRoomJoined: (room_id: string) => void;
+  onRoomDelete: (room_id: string) => void;
 };
 
 const Container = styled(Next.Container)`
-  width: 300px;
+  display: flex;
+  flex-direction: column;
+`;
+
+const Header = styled(Next.Container)`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-direction: row;
 `;
 
 export const RoomSelector: React.FC<Props> = (props) => {
@@ -21,25 +31,52 @@ export const RoomSelector: React.FC<Props> = (props) => {
 
   return (
     <Container>
-      <Next.Text>No Room Selected</Next.Text>
+      <Header>
+        <Next.Text h1>Dsync</Next.Text>
+
+        <Next.Button.Group>
+          <Next.Button flat bordered auto onClick={() => join_modal.setVisible(true)}>
+            Join Room
+          </Next.Button>
+
+          <Next.Button flat auto bordered onClick={props.onCreateRoomClicked}>
+            Create Room
+          </Next.Button>
+        </Next.Button.Group>
+      </Header>
+
+      <Next.Spacer />
 
       {props.rooms.map((room) => {
+        const state = room.state?.toJSON();
         return (
           <Next.Row key={room.id}>
-            <Next.Card style={{ margin: 4 }} onClick={() => props.onRoomSelected(room)} hoverable bordered>
-              {room.id}
+            <Next.Card
+              style={{ margin: 4, flexDirection: "row" }}
+              onClick={() => props.onRoomSelected(room)}
+              clickable
+              hoverable
+              bordered
+            >
+              <Next.Row fluid justify="space-between" align="center">
+                {state?.metadata.name ? state.metadata.name : room.id}
+
+                <Next.Button
+                  auto
+                  bordered
+                  color="warning"
+                  size="sm"
+                  icon={<Icons.Trash />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    props.onRoomDelete(room.id);
+                  }}
+                />
+              </Next.Row>
             </Next.Card>
           </Next.Row>
         );
       })}
-
-      <Next.Button flat auto onClick={props.onCreateRoomClicked}>
-        New Room
-      </Next.Button>
-
-      <Next.Button flat auto onClick={() => join_modal.setVisible(true)}>
-        Join Room
-      </Next.Button>
 
       <JoinRoomModal
         {...join_modal.bindings}

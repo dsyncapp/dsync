@@ -87,6 +87,13 @@ export const createRoom = () => {
   observeRoom(room);
 };
 
+export const deleteRoom = (room_id: string) => {
+  observers.get(room_id)?.();
+  observers.delete(room_id);
+  db.deleteRoom(room_id);
+  state.Rooms.set(state.Rooms.value.filter((room) => room.id !== room_id));
+};
+
 export const startRoomSyncLoop = () => {
   const subscription = state.socket.subscribe((event) => {
     const room_state = state.Rooms.find((room) => room.id.value === event.room_id);
@@ -126,21 +133,21 @@ export const startRoomSyncLoop = () => {
 
   const interval = setInterval(() => {
     const room = state.Rooms.find((room) => room.id.value === state.ActiveRoom.value)?.value;
-    if (!room || room.state) {
+    if (!room) {
       return;
     }
 
-    // const patch = room.state?.createPatch();
-    // if (patch) {
-    //   console.log(`emitting sync event with ${patch.patch.length}B`);
-    // }
+    const patch = room.state?.createPatch();
+    if (patch) {
+      console.log(`emitting sync event with ${patch.patch.length}B`);
+    }
 
     state.socket.emit({
       type: signaling_events.EventType.Sync,
       room_id: room.id,
-      payload: null
+      payload: patch || null
     });
-  }, 1000);
+  }, 5000);
 
   return () => {
     clearInterval(interval);

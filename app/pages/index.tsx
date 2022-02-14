@@ -47,6 +47,7 @@ const Home: NextPage = () => {
           onRoomSelected={(room) => api.rooms.joinKnownRoom(room.id)}
           onCreateRoomClicked={api.rooms.createRoom}
           onRoomJoined={api.rooms.joinNewRoom}
+          onRoomDelete={api.rooms.deleteRoom}
         />
       )}
     </div>
