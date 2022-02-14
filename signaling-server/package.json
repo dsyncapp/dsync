@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "tsc -b",
     "watch": "env-cmd ts-node-dev src/index"
   },
   "author": "Julien Vincent",

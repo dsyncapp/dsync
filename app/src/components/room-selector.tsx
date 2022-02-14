@@ -3,10 +3,13 @@ import styled from "styled-components";
 import { Room } from "../state";
 import * as React from "react";
 
+import JoinRoomModal from "./join-room-modal";
+
 type Props = {
   rooms: Room[];
   onRoomSelected: (room: Room) => void;
   onCreateRoomClicked: () => void;
+  onRoomJoined: (room_id: string) => void;
 };
 
 const Container = styled(Next.Container)`
@@ -14,7 +17,7 @@ const Container = styled(Next.Container)`
 `;
 
 export const RoomSelector: React.FC<Props> = (props) => {
-  const [room_id, setRoomId] = React.useState("");
+  const join_modal = Next.useModal();
 
   return (
     <Container>
@@ -33,6 +36,18 @@ export const RoomSelector: React.FC<Props> = (props) => {
       <Next.Button flat auto onClick={props.onCreateRoomClicked}>
         New Room
       </Next.Button>
+
+      <Next.Button flat auto onClick={() => join_modal.setVisible(true)}>
+        Join Room
+      </Next.Button>
+
+      <JoinRoomModal
+        {...join_modal.bindings}
+        onJoin={(room_id) => {
+          props.onRoomJoined(room_id);
+          join_modal.setVisible(false);
+        }}
+      />
     </Container>
   );
 };

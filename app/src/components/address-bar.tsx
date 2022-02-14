@@ -4,50 +4,8 @@ import { Room } from "../state";
 import * as React from "react";
 import * as api from "../api";
 
+import JoinRoomModal from "./join-room-modal";
 import * as hooks from "../hooks";
-
-type JoinRoomProps = {
-  onJoin: (room_id: string) => void;
-};
-
-const JoinRoomForm: React.FC<JoinRoomProps> = (props) => {
-  const [room_id, setRoomId] = React.useState("");
-
-  return (
-    <>
-      <Next.Modal.Header>
-        <p>Join New Room</p>
-      </Next.Modal.Header>
-
-      <Next.Modal.Body style={{ alignItems: "center" }}>
-        <p>Enter Room ID to start watching together</p>
-
-        <Next.Input
-          animated={false}
-          status="primary"
-          autoFocus
-          labelLeft="Room ID"
-          fullWidth
-          onChange={(e) => setRoomId(e.target.value)}
-          value={room_id}
-          onKeyPress={(e) => {
-            if (e.code === "Enter") {
-              if (room_id) {
-                props.onJoin(room_id);
-              }
-            }
-          }}
-        />
-      </Next.Modal.Body>
-
-      <Next.Modal.Footer justify="center">
-        <Next.Button flat bordered color="secondary" onClick={() => props.onJoin(room_id)}>
-          JOIN!
-        </Next.Button>
-      </Next.Modal.Footer>
-    </>
-  );
-};
 
 export enum SourceType {
   Web = "web",
@@ -175,14 +133,13 @@ export const AddressBar: React.FC<Props> = (props) => {
         </Next.StyledButtonGroup>
       </Next.Grid>
 
-      <Next.Modal blur {...join_modal.bindings}>
-        <JoinRoomForm
-          onJoin={(room_id) => {
-            props.onRoomJoined(room_id);
-            join_modal.setVisible(false);
-          }}
-        />
-      </Next.Modal>
+      <JoinRoomModal
+        {...join_modal.bindings}
+        onJoin={(room_id) => {
+          props.onRoomJoined(room_id);
+          join_modal.setVisible(false);
+        }}
+      />
     </Next.Grid.Container>
   );
 };

@@ -2,7 +2,8 @@
 	"scripts": {
     "watch-server": "cd signaling-server && pnpm watch",
     "watch-app": "cd app && pnpm watch",
-		"watch": "concurrently -r npm:watch-*"
+		"watch": "concurrently -r npm:watch-*",
+    "build": "pnpm recursive run build"
 	},
 	"devDependencies": {
 		"concurrently": "^7.0.0",

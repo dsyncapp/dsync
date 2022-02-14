@@ -1,5 +1,6 @@
 {
-  "name": "signaling-server",
+  "name": "@dsyncapp/dsync",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "build": "next build && next export",

@@ -25,6 +25,14 @@ export const joinKnownRoom = (room_id: string) => {
     type: signaling_events.EventType.Join,
     id: room_id
   });
+
+  if (!room.state) {
+    state.socket.emit({
+      type: signaling_events.EventType.Sync,
+      room_id: room_id,
+      payload: null
+    });
+  }
 };
 
 export const joinNewRoom = (room_id: string) => {
@@ -48,7 +56,7 @@ export const observeRoom = (room: state.Room) => {
   observers.get(room.id)?.();
   const observer = room.state.observe((patch, origin) => {
     if (origin === constants.process_id) {
-      console.log("emitting to peers");
+      console.log("emitting to peers", `${patch.length}B`);
       state.socket.emit({
         type: signaling_events.EventType.Sync,
         room_id: room.id,
@@ -118,14 +126,19 @@ export const startRoomSyncLoop = () => {
 
   const interval = setInterval(() => {
     const room = state.Rooms.find((room) => room.id.value === state.ActiveRoom.value)?.value;
-    if (!room) {
+    if (!room || room.state) {
       return;
     }
+
+    // const patch = room.state?.createPatch();
+    // if (patch) {
+    //   console.log(`emitting sync event with ${patch.patch.length}B`);
+    // }
 
     state.socket.emit({
       type: signaling_events.EventType.Sync,
       room_id: room.id,
-      payload: room.state?.createPatch() || null
+      payload: null
     });
   }, 1000);
 

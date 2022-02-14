@@ -1,4 +1,5 @@
 import * as video_manager from "../video-managers";
+import * as constants from "../constants";
 import * as React from "react";
 
 type Props = {
@@ -40,7 +41,7 @@ export const WebSource = React.forwardRef<video_manager.VideoManager, Props>((pr
       }}
       style={{ width: "100%", height: "100%" }}
       src={props.source}
-      preload={process.env.NEXT_PUBLIC_EXTENSION_PATH}
+      preload={constants.ENV.WEBVIEW_PRELOAD_FILE}
     />
   );
 });
