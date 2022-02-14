@@ -1,8 +1,10 @@
 import * as video_managers from "../video-managers";
+import * as constants from "../constants";
 import styled from "styled-components";
 import * as state from "../state";
 import * as React from "react";
 import * as api from "../api";
+import * as _ from "lodash";
 
 import AddressBar, { SourceType } from "./address-bar";
 import ManualSource from "./manual-source";
@@ -52,29 +54,59 @@ export const ActiveRoom: React.FC<Props> = (props) => {
       }
     }
 
+    if (previous_state.current) {
+      if (api.utils.allPeersReady(props.room_state.peers) && !api.utils.allPeersReady(previous_state.current.peers)) {
+        console.log("resuming because all peers have become ready");
+        video_manager.current?.resume();
+      }
+
+      if (!api.utils.allPeersReady(props.room_state.peers) && api.utils.allPeersReady(previous_state.current.peers)) {
+        console.log("pausing because not all peers are ready");
+        video_manager.current?.pause();
+      }
+    }
+
+    video_manager.current?.getState().then((status) => {
+      if (!status.seeking) {
+        const delta = api.utils.getDeltaFromFurthestPeer(props.room_state.peers, constants.process_id);
+        if (delta) {
+          if (!delta.left?.status.seeking && !delta.right?.status.seeking) {
+            if (delta.delta > 1) {
+              console.log(delta);
+              console.log("More than 1s out of sync with furthest peer. Adjusting time");
+              video_manager.current?.seek(status.time - delta.delta / 2);
+            }
+          }
+        }
+      }
+
+      if (source_state.playing && status.paused && api.utils.allPeersReady(props.room_state.peers)) {
+        video_manager.current?.resume();
+      }
+
+      if (!source_state.playing && !status.paused) {
+        video_manager.current?.pause();
+      }
+    });
+
     previous_state.current = props.room_state;
   }, [props.room_state]);
 
   React.useEffect(() => {
     const interval = setInterval(() => {
       video_manager.current?.getState().then((status) => {
-        // console.log(status);
+        props.room.state?.updateStatus(status);
+
+        if (!status.paused && !api.utils.allPeersReady(props.room_state.peers)) {
+          video_manager.current?.pause();
+        }
       });
     }, 500);
+
     return () => {
       clearInterval(interval);
     };
   }, []);
-
-  const onManagerLoaded = (manager: video_managers.VideoManager) => {
-    video_manager.current = manager;
-
-    // if (source_state.playing) {
-    //   video_manager.current.resume();
-    // } else {
-    //   video_manager.current.pause();
-    // }
-  };
 
   const handleVideoEvent: video_managers.VideoEventHandler = (event) => {
     switch (event.type) {
@@ -110,11 +142,11 @@ export const ActiveRoom: React.FC<Props> = (props) => {
         break;
       }
 
-      source = <WebSource source={active_source} ref={onManagerLoaded} onEvent={handleVideoEvent} />;
+      source = <WebSource source={active_source} ref={video_manager} onEvent={handleVideoEvent} />;
       break;
     }
     case SourceType.Manual: {
-      source = <ManualSource ref={onManagerLoaded} onEvent={handleVideoEvent} />;
+      source = <ManualSource ref={video_manager} onEvent={handleVideoEvent} />;
       break;
     }
   }
@@ -124,6 +156,7 @@ export const ActiveRoom: React.FC<Props> = (props) => {
       <AddressBar
         rooms={props.rooms}
         active_room={props.room.id}
+        room_state={props.room_state}
         onRoomClicked={(room) => api.rooms.joinKnownRoom(room.id)}
         onCreateRoomClicked={api.rooms.createRoom}
         onRoomJoined={api.rooms.joinNewRoom}

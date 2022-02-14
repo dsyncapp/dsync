@@ -2,6 +2,7 @@ import * as Next from "@nextui-org/react";
 import * as Icons from "@geist-ui/icons";
 import { Room } from "../state";
 import * as React from "react";
+import * as api from "../api";
 
 import * as hooks from "../hooks";
 
@@ -56,6 +57,7 @@ export enum SourceType {
 type Props = {
   rooms: Room[];
   active_room: string;
+  room_state: api.room_state.SerializedRoomState;
 
   onRoomClicked: (room: Room) => void;
   onCreateRoomClicked: () => void;
@@ -148,6 +150,18 @@ export const AddressBar: React.FC<Props> = (props) => {
           }}
         >
           {props.active_room}
+        </Next.Button>
+      </Next.Grid>
+
+      <Next.Grid>
+        <Next.Button
+          auto
+          size="xs"
+          flat
+          color={api.utils.allPeersReady(props.room_state.peers) ? "success" : "error"}
+          style={{ marginLeft: 10 }}
+        >
+          {api.utils.filterActivePeers(props.room_state.peers).length}
         </Next.Button>
       </Next.Grid>
 

@@ -1,8 +1,8 @@
 import * as video_manager from "../video-managers";
 import * as React from "react";
 
-type Props =  {
-  onEvent: video_manager.VideoEventHandler
+type Props = {
+  onEvent: video_manager.VideoEventHandler;
   url: string;
 };
 

@@ -65,6 +65,17 @@ export const createWebViewVideoManager = (
     });
   };
 
+  webview.addEventListener("did-navigate", async (event: any) => {
+    handler({
+      type: video_manager.PlayerEventType.Navigate,
+
+      status: await getStatus(),
+
+      // @ts-ignore
+      url: webview.getURL()
+    });
+  });
+
   webview.addEventListener("did-navigate-in-page", async (event: any) => {
     handler({
       type: video_manager.PlayerEventType.Navigate,

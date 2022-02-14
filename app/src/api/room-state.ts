@@ -1,3 +1,4 @@
+import * as managers from "../video-managers";
 import * as constants from "../constants";
 import * as y from "yjs";
 
@@ -11,14 +12,25 @@ type RoomMetadata = {
   source: string;
 };
 
+export type Peer = {
+  client_id: string;
+  process_id: string;
+
+  heartbeat: string;
+
+  status: managers.PlayerStatus;
+};
+
 export type SerializedRoomState = {
   metadata: RoomMetadata;
   sources: Record<string, SourceState>;
+  peers: Record<string, Peer>;
 };
 
 const serializeRoomState = (doc: y.Doc): SerializedRoomState => {
-  const sources = doc.getMap("sources");
   const metadata = doc.getMap<any>("metadata");
+  const sources = doc.getMap("sources");
+  const peers = doc.getMap("peers");
 
   const serialized_sources: Record<string, SourceState> = {};
   for (const [key, source] of sources.entries()) {
@@ -33,7 +45,8 @@ const serializeRoomState = (doc: y.Doc): SerializedRoomState => {
       name: metadata.get("name") || "",
       source: metadata.get("source") || ""
     },
-    sources: serialized_sources
+    sources: serialized_sources,
+    peers: peers.toJSON()
   };
 };
 
@@ -89,6 +102,18 @@ export class RoomState {
 
   seek = (time: number) => {
     this.set("position", time);
+  };
+
+  updateStatus = (status: managers.PlayerStatus) => {
+    this.update((doc) => {
+      const peers = doc.getMap<Peer>("peers");
+      peers.set(constants.process_id, {
+        client_id: constants.client_id,
+        process_id: constants.process_id,
+        heartbeat: new Date().toISOString(),
+        status: status
+      });
+    });
   };
 
   observe = (observer: (patch: Uint8Array, origin: string) => void) => {

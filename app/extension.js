@@ -6,6 +6,7 @@ const emit = (event) => {
   electron.ipcRenderer.sendToHost("dsync", event);
 };
 
+const lock = new Set();
 let player;
 
 const getPlayerStatus = () => {
@@ -27,15 +28,18 @@ electron.ipcRenderer.on("dsync", (_e, event) => {
       if (player.paused) {
         return;
       }
+      lock.add("pause");
       return player.pause();
     }
     case "play": {
       if (!player.paused) {
         return;
       }
+      lock.add("play");
       return player.play();
     }
     case "seek": {
+      lock.add("seeking");
       player.currentTime = event.time;
       return;
     }
@@ -58,13 +62,16 @@ const onPlayerLoaded = (new_player) => {
     player_details: {
       id: player.getAttribute("id"),
       name: player.getAttribute("name"),
-      class_name: player.getAttribute("className"),
+      class_name: player.getAttribute("className")
     }
   });
 
   const events = ["waiting", "play", "pause", "playing", "seeking", "seek"];
   events.map((event) => {
     player.addEventListener(event, () => {
+      if (lock.has(event)) {
+        return lock.delete(event);
+      }
       emit({
         type: "player-event",
         event: event,

@@ -25,6 +25,7 @@ importers:
       '@types/styled-components': ^5.1.22
       '@types/uuid': ^8.3.4
       async: ^3.2.3
+      date-fns: ^2.28.0
       eslint: 8.8.0
       eslint-config-next: 12.0.10
       idb: ^7.0.0
@@ -44,6 +45,7 @@ importers:
       '@types/async': 3.2.12
       '@types/uuid': 8.3.4
       async: 3.2.3
+      date-fns: 2.28.0
       idb: 7.0.0
       lodash: 4.17.21
       next: 12.0.10_react-dom@17.0.2+react@17.0.2
@@ -972,7 +974,6 @@ packages:
   /date-fns/2.28.0:
     resolution: {integrity: sha512-8d35hViGYx/QH0icHYCeLmsLmMUheMmTyV9Fcm6gvNwdw31yXXH+O85sOBJ+OLnLQMKZowvpKb6FgMIQjcpvQw==}
     engines: {node: '>=0.11'}
-    dev: true
 
   /debug/2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}

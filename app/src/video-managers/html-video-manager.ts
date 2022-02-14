@@ -4,24 +4,40 @@ export const createHTMLVideoManager = (
   video: HTMLVideoElement,
   handler: video_manager.VideoEventHandler
 ): video_manager.VideoManager => {
-  video.addEventListener("timeupdate", (event) => {
-    console.log(event);
-    console.log(video.currentTime);
+  const lock = new Set<video_manager.PlayerEventType>();
+
+  Object.values(video_manager.PlayerEventType).forEach((event) => {
+    video.addEventListener(event, () => {
+      if (lock.has(event)) {
+        return lock.delete(event);
+      }
+      handler({
+        type: event,
+        status: {
+          paused: video.paused,
+          seeking: video.seeking,
+          time: video.currentTime
+        }
+      });
+    });
   });
 
   return {
     pause: () => {
       console.log("pausing html video");
+      lock.add(video_manager.PlayerEventType.Pause);
       video.pause();
     },
 
     resume: () => {
       console.log("resuming html video");
+      lock.add(video_manager.PlayerEventType.Play);
       video.play();
     },
 
     seek: (time: number) => {
       console.log("seeking html video");
+      lock.add(video_manager.PlayerEventType.Seeking);
       video.currentTime = time;
     },
 
