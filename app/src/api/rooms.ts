@@ -35,6 +35,17 @@ export const joinKnownRoom = (room_id: string) => {
   }
 };
 
+export const leaveRoom = () => {
+  if (state.ActiveRoom.value) {
+    state.socket.emit({
+      type: signaling_events.EventType.Leave,
+      id: state.ActiveRoom.value
+    });
+  }
+
+  state.ActiveRoom.set(null);
+};
+
 export const joinNewRoom = (room_id: string) => {
   const room = {
     id: room_id

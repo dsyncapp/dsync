@@ -172,6 +172,7 @@ export const ActiveRoom: React.FC<Props> = (props) => {
         source_type={source_type}
         onSourceTypeChange={setSourceType}
         active_source={active_source}
+        onLeaveRoomClicked={api.rooms.leaveRoom}
         onActiveSourceChange={(source) => {
           props.room.state?.setSource(source);
         }}

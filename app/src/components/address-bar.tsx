@@ -20,6 +20,7 @@ type Props = {
   onRoomClicked: (room: Room) => void;
   onCreateRoomClicked: () => void;
   onRoomJoined: (room_id: string) => void;
+  onLeaveRoomClicked: () => void;
 
   active_source: string;
   onActiveSourceChange: (source: string) => void;
@@ -124,13 +125,24 @@ export const AddressBar: React.FC<Props> = (props) => {
       </Next.Grid>
 
       <Next.Grid>
-        <Next.StyledButtonGroup style={{ margin: "0 0 0 10px" }}>
+        <Next.StyledButtonGroup style={{ margin: "0 10px 0 10px" }}>
           <Next.Button auto flat size="xs" onClick={() => join_modal.setVisible(true)}>
             Join Room
           </Next.Button>
 
           <Next.Button auto flat color="success" size="xs" icon={<Icons.Plus />} onClick={props.onCreateRoomClicked} />
         </Next.StyledButtonGroup>
+      </Next.Grid>
+
+      <Next.Grid>
+        <Next.Button
+          auto
+          flat
+          size="xs"
+          color="secondary"
+          icon={<Icons.X size={20} />}
+          onClick={props.onLeaveRoomClicked}
+        />
       </Next.Grid>
 
       <JoinRoomModal

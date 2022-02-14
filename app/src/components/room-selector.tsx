@@ -64,9 +64,10 @@ export const RoomSelector: React.FC<Props> = (props) => {
                 <Next.Button
                   auto
                   bordered
-                  color="warning"
-                  size="sm"
-                  icon={<Icons.Trash />}
+                  color="error"
+                  size="xs"
+                  icon={<Icons.Delete size={18} />}
+                  style={{ opacity: ".6" }}
                   onClick={(e) => {
                     e.stopPropagation();
                     props.onRoomDelete(room.id);
