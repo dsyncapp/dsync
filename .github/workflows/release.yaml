@@ -44,4 +44,6 @@ jobs:
       - name: Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_KEYCHAIN: signing_temp.keychain
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSPHRASE }}
         run: cd electron-container && pnpm release -- --${{ matrix.target }}
