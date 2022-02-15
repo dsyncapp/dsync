@@ -137,9 +137,6 @@ export const ActiveRoom: React.FC<Props> = (props) => {
         console.log("seeked to new position", event.status.time);
         return props.room.state?.seek(event.status.time);
       }
-      default: {
-        return console.log(event.type, event.status);
-      }
     }
   };
 

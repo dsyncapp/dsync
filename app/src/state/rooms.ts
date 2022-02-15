@@ -16,7 +16,7 @@ export const useRooms = () => {
   const room = rooms.find((room) => room.id.value === room_id.value);
 
   return {
-    rooms: rooms.value,
-    room: room?.value
+    rooms: rooms,
+    room: room
   };
 };

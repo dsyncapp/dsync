@@ -12,19 +12,7 @@ export const joinKnownRoom = (room_id: string) => {
     return;
   }
 
-  if (state.ActiveRoom.value) {
-    state.socket.emit({
-      type: signaling_events.EventType.Leave,
-      id: state.ActiveRoom.value
-    });
-  }
-
   state.ActiveRoom.set(room_id);
-
-  state.socket.emit({
-    type: signaling_events.EventType.Join,
-    id: room_id
-  });
 
   if (!room.state) {
     state.socket.emit({
@@ -36,13 +24,6 @@ export const joinKnownRoom = (room_id: string) => {
 };
 
 export const leaveRoom = () => {
-  if (state.ActiveRoom.value) {
-    state.socket.emit({
-      type: signaling_events.EventType.Leave,
-      id: state.ActiveRoom.value
-    });
-  }
-
   state.ActiveRoom.set(null);
 };
 
@@ -121,6 +102,8 @@ export const startRoomSyncLoop = () => {
         return;
       }
 
+      console.log("Received full sync from peer. Constructing room state")
+
       let new_room = {
         id: room.id,
         state: RoomState.deserialize(event.payload.patch)
@@ -133,6 +116,7 @@ export const startRoomSyncLoop = () => {
     }
 
     if (!event.payload) {
+      console.log("Peer requested full sync");
       state.socket.emit({
         type: signaling_events.EventType.Sync,
         room_id: event.room_id,
@@ -146,19 +130,19 @@ export const startRoomSyncLoop = () => {
 
   const interval = setInterval(() => {
     const room = state.Rooms.find((room) => room.id.value === state.ActiveRoom.value)?.value;
-    if (!room) {
+    if (!room || room.state) {
       return;
     }
 
-    const patch = room.state?.createPatch();
-    if (patch) {
-      console.log(`emitting sync event with ${patch.patch.length}B`);
-    }
+    // const patch = room.state?.createPatch();
+    // if (patch) {
+    //   console.log(`emitting sync event with ${patch.patch.length}B`);
+    // }
 
     state.socket.emit({
       type: signaling_events.EventType.Sync,
       room_id: room.id,
-      payload: patch || null
+      payload: null
     });
   }, 5000);
 

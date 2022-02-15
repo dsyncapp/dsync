@@ -11,6 +11,16 @@ export const WebSource = React.forwardRef<video_manager.VideoManager, Props>((pr
   const webview = React.useRef<HTMLWebViewElement | null>(null);
   const manager = React.useRef<video_manager.VideoManager | null>(null);
 
+  React.useEffect(() => {
+    return () => {
+      if (typeof ref === "function") {
+        ref(null);
+      } else if (ref) {
+        ref.current = null;
+      }
+    };
+  }, []);
+
   return (
     <webview
       // @ts-ignore

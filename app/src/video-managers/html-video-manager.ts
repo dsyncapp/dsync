@@ -43,8 +43,8 @@ export const createHTMLVideoManager = (
 
     getState: async () => {
       return {
-        paused: true,
-        seeking: true,
+        paused: video.paused,
+        seeking: video.seeking,
         time: video.currentTime
       };
     }

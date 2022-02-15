@@ -10,20 +10,24 @@ export type CreateSocketClientParams = {
   socket_id: string;
 };
 
+const createReadyPromise = (): [Promise<void>, () => void] => {
+  let resolve: () => void;
+  const promise = new Promise<void>((_r) => {
+    resolve = _r;
+  });
+  return [promise, resolve!];
+};
+
 export const createSocketClient = (params: CreateSocketClientParams) => {
   const endpoint = `ws://${params.endpoint}`;
 
   const listeners = new Map<string, Listener>();
+  const rooms = new Set<string>();
 
   let socket: WebSocket;
-  let ready: Promise<void>;
+  let [ready, resolve] = createReadyPromise();
 
   const connect = () => {
-    let resolve: () => void;
-    ready = new Promise((r) => {
-      resolve = r;
-    });
-
     socket = new WebSocket(endpoint);
 
     socket.onopen = () => {
@@ -36,11 +40,23 @@ export const createSocketClient = (params: CreateSocketClientParams) => {
         })
       );
 
+      rooms.forEach((room) => {
+        socket?.send(
+          signaling_events.encode({
+            type: signaling_events.EventType.Join,
+            id: room
+          })
+        );
+      });
+
       resolve();
     };
 
     socket.onclose = () => {
-      connect();
+      [ready, resolve] = createReadyPromise();
+      setTimeout(() => {
+        connect();
+      }, 1000);
     };
 
     socket.onmessage = (message) => {
@@ -56,8 +72,6 @@ export const createSocketClient = (params: CreateSocketClientParams) => {
       await ready;
       if (socket.readyState === socket.OPEN) {
         socket?.send(signaling_events.encode(event));
-      } else {
-        queue.unshift(event);
       }
     } finally {
       done();
@@ -69,6 +83,20 @@ export const createSocketClient = (params: CreateSocketClientParams) => {
   return {
     emit: (event: signaling_events.Event) => {
       queue.push(event);
+    },
+    joinRoom: (room_id: string) => {
+      rooms.add(room_id);
+      queue.push({
+        type: signaling_events.EventType.Join,
+        id: room_id
+      });
+      return () => {
+        rooms.delete(room_id);
+        queue.push({
+          type: signaling_events.EventType.Leave,
+          id: room_id
+        });
+      };
     },
     subscribe: (handler: Listener) => {
       const id = uuid.v4();

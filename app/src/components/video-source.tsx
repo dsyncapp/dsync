@@ -9,6 +9,16 @@ type Props = {
 export const VideoSource = React.forwardRef<video_manager.VideoManager, Props>((props, ref) => {
   const video = React.useRef<HTMLVideoElement | null>(null);
 
+  React.useEffect(() => {
+    return () => {
+      if (typeof ref === "function") {
+        ref(null);
+      } else if (ref) {
+        ref.current = null;
+      }
+    };
+  }, []);
+
   return (
     <video
       controls

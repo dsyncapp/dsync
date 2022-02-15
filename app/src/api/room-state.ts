@@ -50,6 +50,12 @@ const serializeRoomState = (doc: y.Doc): SerializedRoomState => {
   };
 };
 
+const setIfDifferent = (map: y.Map<any>, key: string, value: any) => {
+  if (map.get(key) !== value) {
+    map.set(key, value);
+  }
+};
+
 export class RoomState {
   constructor(private document: y.Doc) {}
 
@@ -68,9 +74,7 @@ export class RoomState {
         doc.getMap("sources").set(source, map);
       }
 
-      if (map.get(key) !== value) {
-        map.set(key, value);
-      }
+      setIfDifferent(map, key, value);
     });
   };
 
@@ -106,13 +110,18 @@ export class RoomState {
 
   updateStatus = (status: managers.PlayerStatus) => {
     this.update((doc) => {
-      const peers = doc.getMap<Peer>("peers");
-      peers.set(constants.process_id, {
-        client_id: constants.client_id,
-        process_id: constants.process_id,
-        heartbeat: new Date().toISOString(),
-        status: status
-      });
+      const peers = doc.getMap<y.Map<any>>("peers");
+
+      let map = peers.get(constants.process_id);
+      if (!map) {
+        map = new y.Map();
+        peers.set(constants.process_id, map);
+      }
+
+      setIfDifferent(map, "client_id", constants.client_id);
+      setIfDifferent(map, "process_id", constants.process_id);
+      setIfDifferent(map, "heartbeat", new Date().toISOString());
+      setIfDifferent(map, "status", status);
     });
   };
 

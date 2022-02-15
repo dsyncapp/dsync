@@ -13,7 +13,7 @@ const Home: NextPage = () => {
   const [loading, setLoading] = React.useState(false);
   const { rooms, room } = state.useRooms();
 
-  const room_state = hooks.useRoomState(room?.state);
+  const room_state = hooks.useRoomState(room);
 
   React.useEffect(() => {
     setLoading(true);
@@ -31,6 +31,13 @@ const Home: NextPage = () => {
     return api.rooms.startRoomSyncLoop();
   }, []);
 
+  React.useEffect(() => {
+    if (!room) {
+      return;
+    }
+    return state.socket.joinRoom(room.value.id);
+  }, [room?.value.id]);
+
   if (loading) {
     return <p>Loading</p>;
   }
@@ -38,12 +45,12 @@ const Home: NextPage = () => {
   return (
     <div style={{ height: "100vh", width: "100vw" }}>
       {room && room_state ? (
-        <Room rooms={rooms} room={room} room_state={room_state} />
+        <Room rooms={rooms.value} room={room.value} room_state={room_state} />
       ) : room ? (
         <p>Room loading</p>
       ) : (
         <RoomSelector
-          rooms={rooms}
+          rooms={rooms.value}
           onRoomSelected={(room) => api.rooms.joinKnownRoom(room.id)}
           onCreateRoomClicked={api.rooms.createRoom}
           onRoomJoined={api.rooms.joinNewRoom}
