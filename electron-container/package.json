@@ -21,8 +21,8 @@
     "electron-builder": "^22.14.13"
   },
   "build": {
-    "productName": "dsync",
-    "appId": "dsyncapp.com",
+    "productName": "Dsync",
+    "appId": "app.dsync",
     "files": [
       "dist/**",
       "env.json"
@@ -32,7 +32,12 @@
     },
     "mac": {
       "category": "public.app-category.video",
-      "target": "dmg"
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ]
     },
     "publish": ["github"]
   }
