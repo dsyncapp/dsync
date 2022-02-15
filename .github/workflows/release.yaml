@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest]
-        target: [windows, linux, mac]
+        target: [mac]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -20,9 +20,7 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 16
-
-      - name: Install PNPM
-        run: npm i -g pnpm
+          cache: 'pnpm'
 
       - name: PNPM Install
         run: pnpm i --frozen-lockfile
