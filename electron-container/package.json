@@ -2,13 +2,14 @@
   "name": "@dsyncapp/electron-container",
   "version": "0.0.1",
   "description": "",
+  "repository": "https://github.com/dsyncapp/dsync",
   "main": "dist/index.js",
   "scripts": {
     "copy-resources": "mkdir -p dist && cp -a ../app/out ./dist/out",
     "build": "pnpm copy-resources && tsc -b",
     "start": "pnpm build && electron dist/index",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder build",
+    "release": "pnpm dist -- -p always"
   },
   "author": "",
   "license": "ISC",
@@ -20,7 +21,7 @@
     "electron-builder": "^22.14.13"
   },
   "build": {
-    "productName": "Dsync",
+    "productName": "dsync",
     "appId": "dsyncapp.com",
     "files": [
       "dist/**",
@@ -30,7 +31,9 @@
       "output": "release"
     },
     "mac": {
-      "category": "public.app-category.video"
-    }
+      "category": "public.app-category.video",
+      "target": "dmg"
+    },
+    "publish": ["github"]
   }
 }
