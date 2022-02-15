@@ -85,7 +85,7 @@ export const deleteRoom = (room_id: string) => {
   observers.get(room_id)?.();
   observers.delete(room_id);
   db.deleteRoom(room_id);
-  state.Rooms.set(state.Rooms.value.filter((room) => room.id !== room_id));
+  state.Rooms.set((rooms) => rooms.filter((room) => room.id !== room_id));
 };
 
 export const startRoomSyncLoop = () => {
@@ -102,7 +102,7 @@ export const startRoomSyncLoop = () => {
         return;
       }
 
-      console.log("Received full sync from peer. Constructing room state")
+      console.log("Received full sync from peer. Constructing room state");
 
       let new_room = {
         id: room.id,
