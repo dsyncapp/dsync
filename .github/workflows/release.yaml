@@ -19,6 +19,21 @@ jobs:
         with:
           version: latest
 
+      - name: Import Code-Signing Certificates
+        uses: apple-actions/import-codesign-certs@v1
+        with:
+          keychain-password: ${{ github.run_id }}
+          p12-file-base64: ${{ secrets.APPLE_SIGNING_CERT_P12 }}
+          p12-password: ${{ secrets.APPLE_SIGNING_CERT_PASSPHRASE }}
+
+      - name: Trust Cert
+        run: |
+          echo -n ${{ secrets.APPLE_SIGNING_CERT_CER }} | base64 -D > cert.cer
+          security unlock-keychain -p ${{ github.run_id }} signing_temp.keychain
+          security authorizationdb write com.apple.trust-settings.admin allow
+          security add-trusted-cert -d -r trustRoot -p codeSign -k signing_temp.keychain cert.cer
+          rm cert.cer
+
       - name: Install Node
         uses: actions/setup-node@v2
         with:
@@ -35,19 +50,6 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Import Code-Signing Certificates
-        uses: apple-actions/import-codesign-certs@v1
-        with:
-          keychain-password: ${{ github.run_id }}
-          p12-file-base64: ${{ secrets.APPLE_SIGNING_CERT_P12 }}
-          p12-password: ${{ secrets.APPLE_SIGNING_CERT_PASSPHRASE }}
-
-      - name: Trust Cert
-        run: |
-          echo -n ${{ secrets.APPLE_SIGNING_CERT_CER }} | base64 -D > cert.cer
-          security unlock-keychain -p ${{ github.run_id }} signing_temp.keychain
-          security add-trusted-cert -d -r trustRoot -p codeSign -k signing_temp.keychain cert.cer
-          rm cert.cer
 
       - name: Release
         env:
