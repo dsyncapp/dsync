@@ -29,7 +29,7 @@ jobs:
       - name: Trust Cert
         run: |
           echo -n ${{ secrets.APPLE_SIGNING_CERT_CER }} | base64 -D > cert.cer
-          security add-trusted-cert -d -r trustRoot -p codeSign -k signing_temp.keychain cert.cer < $(echo -n ${{ github.run_id }})
+          echo -n ${{ github.run_id }} | security add-trusted-cert -d -r trustRoot -p codeSign -k signing_temp.keychain cert.cer
           rm cert.cer
 
       - name: Install Node
