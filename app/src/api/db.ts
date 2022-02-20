@@ -30,14 +30,14 @@ export const upsertRoom = async (room: defs.Room) => {
     ...room,
     state: room.state ? room.state.serialize() : undefined
   });
-  console.log("persisted change");
+  console.debug("persisted change");
   db.close();
 };
 
 export const deleteRoom = async (room_id: string) => {
   const db = await openDB();
   await db.delete("rooms", room_id);
-  console.log("room deleted");
+  console.debug("room deleted");
   db.close();
 };
 

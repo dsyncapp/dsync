@@ -25,7 +25,7 @@ export const useRoomState = (room?: hookstate.State<state.Room>) => {
       }
       setRoomState(next);
     });
-  }, [room?.value.id]);
+  }, [room?.value.id, !!room?.state.value]);
 
   return room_state;
 };

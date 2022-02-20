@@ -136,11 +136,12 @@ export class RoomState {
     return Buffer.from(y.encodeStateAsUpdate(this.document)).toString("base64");
   };
 
-  createPatch = () => {
-    return {
-      vector: Buffer.from(y.encodeStateVector(this.document)).toString("base64"),
-      patch: Buffer.from(y.encodeStateAsUpdate(this.document)).toString("base64")
-    };
+  getStateVector = () => {
+    return y.encodeStateVector(this.document);
+  };
+
+  createPatch = (vector?: Uint8Array) => {
+    return Buffer.from(y.encodeStateAsUpdate(this.document, vector)).toString("base64");
   };
 
   applyPatch = (patch: string) => {

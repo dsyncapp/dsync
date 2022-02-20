@@ -9,9 +9,7 @@ export enum EventType {
 
 export const ConnectEvent = t.object({
   type: t.literal(EventType.Connect),
-  socket_id: t.string(),
-  client_id: t.string(),
-  name: t.string()
+  id: t.string()
 });
 
 export const RoomEvent = t.object({
@@ -19,16 +17,11 @@ export const RoomEvent = t.object({
   id: t.string()
 });
 
-export const SyncEventPayload = t.object({
-  vector: t.string(),
-  patch: t.string()
-});
-export type SyncEventPayload = t.infer<typeof SyncEventPayload>;
-
 export const SyncEvent = t.object({
   type: t.literal(EventType.Sync),
   room_id: t.string(),
-  payload: SyncEventPayload.or(t.null())
+  patch: t.string().optional(),
+  vector: t.string().optional()
 });
 export type SyncEvent = t.infer<typeof SyncEvent>;
 

@@ -1,4 +1,5 @@
 import * as signaling_events from "@dsyncapp/signaling-events";
+import * as crdt_utils from "./crdt-utils";
 import * as constants from "../constants";
 import { RoomState } from "./room-state";
 import * as state from "../state";
@@ -17,8 +18,7 @@ export const joinKnownRoom = (room_id: string) => {
   if (!room.state) {
     state.socket.emit({
       type: signaling_events.EventType.Sync,
-      room_id: room_id,
-      payload: null
+      room_id: room_id
     });
   }
 };
@@ -48,14 +48,11 @@ export const observeRoom = (room: state.Room) => {
   observers.get(room.id)?.();
   const observer = room.state.observe((patch, origin) => {
     if (origin === constants.process_id) {
-      console.log("emitting to peers", `${patch.length}B`);
+      console.debug("emitting to peers", `${patch.length}B`);
       state.socket.emit({
         type: signaling_events.EventType.Sync,
         room_id: room.id,
-        payload: {
-          vector: room.state!.createPatch().vector,
-          patch: Buffer.from(patch).toString("base64")
-        }
+        patch: Buffer.from(patch).toString("base64")
       });
     }
     db.upsertRoom(room);
@@ -98,7 +95,7 @@ export const startRoomSyncLoop = () => {
     }
 
     if (!room.state) {
-      if (!event.payload) {
+      if (!event.patch) {
         return;
       }
 
@@ -106,43 +103,65 @@ export const startRoomSyncLoop = () => {
 
       let new_room = {
         id: room.id,
-        state: RoomState.deserialize(event.payload.patch)
+        state: RoomState.deserialize(event.patch)
       };
 
-      room_state.merge(new_room);
+      room_state.merge({
+        state: new_room.state
+      });
 
       observeRoom(new_room);
       return;
     }
 
-    if (!event.payload) {
+    if (!event.patch && !event.vector) {
       console.log("Peer requested full sync");
       state.socket.emit({
         type: signaling_events.EventType.Sync,
         room_id: event.room_id,
-        payload: room.state.createPatch()
+        patch: room.state.createPatch(),
+        vector: Buffer.from(room.state.getStateVector()).toString("base64")
       });
       return;
     }
 
-    room.state.applyPatch(event.payload.patch);
+    if (event.patch) {
+      room.state.applyPatch(event.patch);
+      return;
+    }
+
+    if (event.vector) {
+      const vector = Buffer.from(event.vector, "base64");
+      if (!crdt_utils.stateVectorsAreEqual(vector, room.state.getStateVector())) {
+        console.log("Peer vector is out of sync. Emitting missing difference");
+        state.socket.emit({
+          type: signaling_events.EventType.Sync,
+          room_id: event.room_id,
+          patch: room.state.createPatch(vector)
+        });
+      }
+      return;
+    }
   });
 
   const interval = setInterval(() => {
     const room = state.Rooms.find((room) => room.id.value === state.ActiveRoom.value)?.value;
-    if (!room || room.state) {
+    if (!room) {
       return;
     }
 
-    // const patch = room.state?.createPatch();
-    // if (patch) {
-    //   console.log(`emitting sync event with ${patch.patch.length}B`);
-    // }
+    if (!room.state) {
+      return state.socket.emit({
+        type: signaling_events.EventType.Sync,
+        room_id: room.id
+      });
+    }
 
+    const vector = room.state.getStateVector();
     state.socket.emit({
       type: signaling_events.EventType.Sync,
       room_id: room.id,
-      payload: null
+      vector: Buffer.from(vector).toString("base64")
     });
   }, 5000);
 

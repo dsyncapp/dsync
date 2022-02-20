@@ -6,16 +6,20 @@ export type Listener = (event: signaling_events.SyncEvent) => void;
 
 export type CreateSocketClientParams = {
   endpoint: string;
-  client_id: string;
   socket_id: string;
 };
 
-const createReadyPromise = (): [Promise<void>, () => void] => {
+const createReadyPromise = (): [Promise<void>, () => void, () => void] => {
   let resolve: () => void;
-  const promise = new Promise<void>((_r) => {
-    resolve = _r;
+  let reject: () => void;
+  const promise = new Promise<void>((_resolve, _reject) => {
+    resolve = _resolve;
+    reject = _reject;
   });
-  return [promise, resolve!];
+
+  promise.catch(() => {});
+
+  return [promise, resolve!, reject!];
 };
 
 export const createSocketClient = (params: CreateSocketClientParams) => {
@@ -25,7 +29,7 @@ export const createSocketClient = (params: CreateSocketClientParams) => {
   const rooms = new Set<string>();
 
   let socket: WebSocket;
-  let [ready, resolve] = createReadyPromise();
+  let [ready, resolve, reject] = createReadyPromise();
 
   const connect = () => {
     socket = new WebSocket(endpoint);
@@ -34,9 +38,7 @@ export const createSocketClient = (params: CreateSocketClientParams) => {
       socket?.send(
         signaling_events.encode({
           type: signaling_events.EventType.Connect,
-          client_id: params.client_id,
-          socket_id: params.socket_id,
-          name: "Lol"
+          id: params.socket_id
         })
       );
 
@@ -53,7 +55,8 @@ export const createSocketClient = (params: CreateSocketClientParams) => {
     };
 
     socket.onclose = () => {
-      [ready, resolve] = createReadyPromise();
+      reject();
+      [ready, resolve, reject] = createReadyPromise();
       setTimeout(() => {
         connect();
       }, 1000);

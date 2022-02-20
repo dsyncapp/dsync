@@ -11,10 +11,7 @@ const server = new ws.WebSocketServer({
 
 type Client = {
   id: string;
-  socket_id: string;
-  name: string;
   socket: ws.WebSocket;
-  rooms: Set<string>;
 };
 
 const clients = new Map<string, Client>();
@@ -23,7 +20,8 @@ const rooms = new Map<string, Set<string>>();
 server.on("connection", (socket) => {
   console.log("Client connected");
 
-  let socket_id: string | undefined;
+  let id: string | undefined;
+  const joined_rooms = new Set<string>();
 
   socket.on("message", (message) => {
     const event = signaling_events.decode(message.toString());
@@ -31,39 +29,28 @@ server.on("connection", (socket) => {
       return;
     }
 
-    if (!socket_id) {
+    if (!id) {
       if (event.type === signaling_events.EventType.Connect) {
-        console.log(`Client registered itself as ${event.socket_id}[${event.client_id}]`);
+        console.log(`Client registered itself as ${event.id}`);
 
-        socket_id = event.socket_id;
-        clients.set(socket_id, {
-          id: event.client_id,
-          socket_id: event.socket_id,
-          name: event.name,
-          socket: socket,
-          rooms: new Set()
+        id = event.id;
+        clients.set(id, {
+          id,
+          socket
         });
       }
-      return;
-    }
-
-    const client = clients.get(socket_id);
-    if (!client) {
-      console.log("Unexpected error occurred. Registered client is not present in store!");
-      socket.terminate();
       return;
     }
 
     switch (event.type) {
       case signaling_events.EventType.Join: {
         const room = rooms.get(event.id) || new Set();
-
-        room.add(client.socket_id);
-        client.rooms.add(event.id);
-
         rooms.set(event.id, room);
 
-        console.log(`Client ${socket_id}[${client.id}] has joined room ${event.id}`);
+        room.add(id);
+        joined_rooms.add(event.id);
+
+        console.log(`Client ${id} has joined room ${event.id}`);
         return;
       }
 
@@ -73,35 +60,33 @@ server.on("connection", (socket) => {
           return;
         }
 
-        room.delete(client.socket_id);
-        client.rooms.delete(event.id);
+        room.delete(id);
+        joined_rooms.delete(event.id);
 
         if (room.size === 0) {
           rooms.delete(event.id);
-        } else {
-          rooms.set(event.id, room);
         }
 
-        console.log(`Client ${socket_id}[${client.id}] has left room ${event.id}`);
+        console.log(`Client ${id} has left room ${event.id}`);
         return;
       }
 
       case signaling_events.EventType.Sync: {
         const room = rooms.get(event.room_id);
         if (!room) {
-          console.log(`Client ${client.id} is emitting sync event to unregistered room`);
+          console.log(`Client ${id} is emitting sync event to unregistered room`);
           return;
         }
 
-        console.log(`Client ${socket_id}[${client.id}] is emitting sync event to room ${event.room_id}`);
+        console.log(`Client ${id} is emitting sync event to room ${event.room_id}`);
 
-        room.forEach((id) => {
-          const member = clients.get(id);
-          if (!member) {
+        room.forEach((member_id) => {
+          if (member_id === id) {
             return;
           }
 
-          if (member.socket_id === client.socket_id) {
+          const member = clients.get(member_id);
+          if (!member) {
             return;
           }
 
@@ -114,21 +99,23 @@ server.on("connection", (socket) => {
   });
 
   socket.on("close", () => {
-    if (!socket_id) {
+    if (!id) {
       console.log("Client disconnected");
       return;
     }
 
-    const client = clients.get(socket_id);
-    console.log(`Client ${socket_id}[${client?.id}] disconnected`);
+    console.log(`Client ${id} disconnected`);
 
-    if (!client) {
-      return;
-    }
+    clients.delete(id);
 
-    clients.delete(socket_id);
+    joined_rooms.forEach((room_id) => {
+      const room = rooms.get(room_id);
+      if (!room) {
+        return;
+      }
 
-    // cleanup
+      room.delete(id!);
+    });
   });
 });
 
