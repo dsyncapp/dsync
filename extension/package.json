@@ -1,0 +1,21 @@
+{
+  "name": "@dsyncapp/extension",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/index.js",
+  "types": "dist/@types/index.js",
+  "scripts": {
+    "build": "esbuild src/* --bundle --outdir=dist"
+  },
+  "author": "Julien Vincent",
+  "license": "MIT",
+  "dependencies": {
+    "@dsyncapp/protocols": "^0.0.1",
+    "buffer": "^6.0.3",
+    "webextension-polyfill": "^0.8.0"
+  },
+  "devDependencies": {
+    "@types/webextension-polyfill": "^0.8.2",
+    "esbuild": "^0.14.23"
+  }
+}

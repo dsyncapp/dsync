@@ -1,3 +1,4 @@
+import * as bson from "bson";
 import * as t from "zod";
 
 export enum EventType {
@@ -17,27 +18,42 @@ export const RoomEvent = t.object({
   id: t.string()
 });
 
+const buffer = t
+  .any()
+  .refine((t) => Buffer.isBuffer(t))
+  .transform((t) => t as Buffer);
+
 export const SyncEvent = t.object({
   type: t.literal(EventType.Sync),
   room_id: t.string(),
-  patch: t.string().optional(),
-  vector: t.string().optional()
+  patch: buffer.optional(),
+  vector: buffer.optional()
 });
 export type SyncEvent = t.infer<typeof SyncEvent>;
 
 export const Event = ConnectEvent.or(RoomEvent).or(SyncEvent);
 export type Event = t.infer<typeof Event>;
 
-export const decode = (data: string) => {
+export const decode = (data: Buffer | string) => {
   try {
-    const event = JSON.parse(data);
+    const event = bson.deserialize(Buffer.from(data), {
+      promoteBuffers: true,
+      validation: {
+        utf8: false
+      }
+    });
     return Event.parse(event);
   } catch (err) {
     console.log(err);
-    return null;
+    throw err;
   }
 };
 
 export const encode = (data: Event) => {
-  return JSON.stringify(data);
+  return bson.serialize(data);
+};
+
+export const SignalingEventCodec = {
+  decode,
+  encode
 };

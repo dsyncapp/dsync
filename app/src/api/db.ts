@@ -28,7 +28,7 @@ export const upsertRoom = async (room: defs.Room) => {
   const db = await openDB();
   await db.put("rooms", {
     ...room,
-    state: room.state ? room.state.serialize() : undefined
+    state: room.state ? room.state.serialize().toString("base64") : undefined
   });
   console.debug("persisted change");
   db.close();
@@ -48,7 +48,7 @@ export const getRooms = async (): Promise<defs.Room[]> => {
   return rooms.map((room) => {
     return {
       ...room,
-      state: room.state ? room_state.RoomState.deserialize(room.state) : undefined
+      state: room.state ? room_state.RoomState.deserialize(Buffer.from(room.state, "base64")) : undefined
     };
   });
 };

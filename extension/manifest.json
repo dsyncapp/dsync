@@ -1,0 +1,17 @@
+{
+  "manifest_version": 2,
+  "name": "dsync",
+  "version": "0.0.1",
+
+  "description": "Allows the dsync app to control video players discovered in websites",
+
+  "permissions": [
+    "tabs",
+    "webNavigation",
+    "<all_urls>"
+  ],
+
+  "background": {
+    "scripts": ["dist/polyfill.js", "dist/background.js"]
+  }
+}

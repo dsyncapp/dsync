@@ -1,4 +1,4 @@
-import * as signaling_events from "@dsyncapp/signaling-events";
+import * as protocols from "@dsyncapp/protocols";
 import * as ws from "ws";
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 8080;
@@ -45,13 +45,13 @@ server.on("connection", (socket) => {
   });
 
   socket.on("message", (message) => {
-    const event = signaling_events.decode(message.toString());
-    if (!event) {
+    if (Array.isArray(message)) {
       return;
     }
+    const event = protocols.SignalingEventCodec.decode(Buffer.from(message));
 
     if (!id) {
-      if (event.type === signaling_events.EventType.Connect) {
+      if (event.type === protocols.EventType.Connect) {
         console.log(`Client registered itself as ${event.id}`);
 
         id = event.id;
@@ -64,7 +64,7 @@ server.on("connection", (socket) => {
     }
 
     switch (event.type) {
-      case signaling_events.EventType.Join: {
+      case protocols.EventType.Join: {
         const room = rooms.get(event.id) || new Set();
         rooms.set(event.id, room);
 
@@ -75,7 +75,7 @@ server.on("connection", (socket) => {
         return;
       }
 
-      case signaling_events.EventType.Leave: {
+      case protocols.EventType.Leave: {
         const room = rooms.get(event.id);
         if (!room) {
           return;
@@ -92,7 +92,7 @@ server.on("connection", (socket) => {
         return;
       }
 
-      case signaling_events.EventType.Sync: {
+      case protocols.EventType.Sync: {
         const room = rooms.get(event.room_id);
         if (!room) {
           console.log(`Client ${id} is emitting sync event to unregistered room`);
@@ -112,7 +112,7 @@ server.on("connection", (socket) => {
           }
 
           if (member.socket.readyState === ws.WebSocket.OPEN) {
-            member.socket.send(JSON.stringify(event));
+            member.socket.send(protocols.SignalingEventCodec.encode(event));
           }
         });
 

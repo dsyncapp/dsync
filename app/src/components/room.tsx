@@ -7,6 +7,7 @@ import * as api from "../api";
 import * as _ from "lodash";
 
 import AddressBar, { SourceType } from "./address-bar";
+import ExtensionSource from "./extension-source";
 import ManualSource from "./manual-source";
 import WebSource from "./web-source";
 

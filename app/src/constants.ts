@@ -1,10 +1,6 @@
-import * as uuid from "uuid";
+/// <reference path="./global.d.ts" />
 
-export type ENV = {
-  API_ENDPOINT: string;
-  WEBVIEW_PRELOAD_FILE: string;
-};
-export const ENV: ENV = (global as any).ENV;
+import * as uuid from "uuid";
 
 export let client_id: string;
 

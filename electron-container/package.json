@@ -14,9 +14,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@dsyncapp/dsync": "^0.0.1"
+    "@dsyncapp/protocols": "^0.0.1",
+    "@dsyncapp/dsync": "^0.0.1",
+    "uuid": "^8.3.2",
+    "ws": "^8.4.2"
   },
   "devDependencies": {
+    "@types/uuid": "^8.3.4",
+    "@types/ws": "^8.2.2",
     "electron": "^17.0.0",
     "electron-builder": "^22.14.13"
   },
@@ -38,10 +43,15 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ]
     },
-    "publish": ["github"]
+    "publish": [
+      "github"
+    ]
   }
 }

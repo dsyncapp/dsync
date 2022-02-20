@@ -1,4 +1,4 @@
-import * as signaling_events from "@dsyncapp/signaling-events";
+import * as protocols from "@dsyncapp/protocols";
 import * as crdt_utils from "./crdt-utils";
 import * as constants from "../constants";
 import { RoomState } from "./room-state";
@@ -16,8 +16,8 @@ export const joinKnownRoom = (room_id: string) => {
   state.ActiveRoom.set(room_id);
 
   if (!room.state) {
-    state.socket.emit({
-      type: signaling_events.EventType.Sync,
+    state.socket.send({
+      type: protocols.EventType.Sync,
       room_id: room_id
     });
   }
@@ -49,10 +49,10 @@ export const observeRoom = (room: state.Room) => {
   const observer = room.state.observe((patch, origin) => {
     if (origin === constants.process_id) {
       console.debug("emitting to peers", `${patch.length}B`);
-      state.socket.emit({
-        type: signaling_events.EventType.Sync,
+      state.socket.send({
+        type: protocols.EventType.Sync,
         room_id: room.id,
-        patch: Buffer.from(patch).toString("base64")
+        patch: Buffer.from(patch)
       });
     }
     db.upsertRoom(room);
@@ -116,11 +116,11 @@ export const startRoomSyncLoop = () => {
 
     if (!event.patch && !event.vector) {
       console.log("Peer requested full sync");
-      state.socket.emit({
-        type: signaling_events.EventType.Sync,
+      state.socket.send({
+        type: protocols.EventType.Sync,
         room_id: event.room_id,
         patch: room.state.createPatch(),
-        vector: Buffer.from(room.state.getStateVector()).toString("base64")
+        vector: room.state.getStateVector()
       });
       return;
     }
@@ -131,13 +131,12 @@ export const startRoomSyncLoop = () => {
     }
 
     if (event.vector) {
-      const vector = Buffer.from(event.vector, "base64");
-      if (!crdt_utils.stateVectorsAreEqual(vector, room.state.getStateVector())) {
+      if (!crdt_utils.stateVectorsAreEqual(event.vector, room.state.getStateVector())) {
         console.log("Peer vector is out of sync. Emitting missing difference");
-        state.socket.emit({
-          type: signaling_events.EventType.Sync,
+        state.socket.send({
+          type: protocols.EventType.Sync,
           room_id: event.room_id,
-          patch: room.state.createPatch(vector)
+          patch: room.state.createPatch(event.vector)
         });
       }
       return;
@@ -151,17 +150,17 @@ export const startRoomSyncLoop = () => {
     }
 
     if (!room.state) {
-      return state.socket.emit({
-        type: signaling_events.EventType.Sync,
+      return state.socket.send({
+        type: protocols.EventType.Sync,
         room_id: room.id
       });
     }
 
     const vector = room.state.getStateVector();
-    state.socket.emit({
-      type: signaling_events.EventType.Sync,
+    state.socket.send({
+      type: protocols.EventType.Sync,
       room_id: room.id,
-      vector: Buffer.from(vector).toString("base64")
+      vector: vector
     });
   }, 5000);
 

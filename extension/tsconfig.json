@@ -2,16 +2,17 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "declarationDir": "dist/@types",
+    "lib": ["ESNext", "DOM"],
     "outDir": "dist",
     "rootDir": "src",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "useUnknownInCatchVariables": false
   },
+  "include": ["src"],
   "references": [
     {
       "path": "../protocols"
     }
-  ],
-  "include": ["src", "../app/extension.js"]
+  ]
 }

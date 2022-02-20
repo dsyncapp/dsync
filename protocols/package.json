@@ -1,0 +1,23 @@
+{
+  "name": "@dsyncapp/protocols",
+  "version": "0.0.1",
+  "description": "A suite of network protocol related utils for communication between components",
+  "main": "dist/index.js",
+  "types": "dist/@types/index.js",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "author": "Julien Vincent",
+  "license": "MIT",
+  "dependencies": {
+    "uuid": "^8.3.2",
+    "async": "^3.2.3",
+    "bson": "^4.6.1",
+    "ws": "^8.4.2",
+    "zod": "^3.11.6"
+  },
+  "devDependencies": {
+    "@types/async": "^3.2.12",
+    "@types/ws": "^8.2.2"
+  }
+}

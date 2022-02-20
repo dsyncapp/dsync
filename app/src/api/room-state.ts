@@ -132,24 +132,24 @@ export class RoomState {
   };
 
   serialize = () => {
-    return Buffer.from(y.encodeStateAsUpdate(this.document)).toString("base64");
+    return Buffer.from(y.encodeStateAsUpdate(this.document));
   };
 
   getStateVector = () => {
-    return y.encodeStateVector(this.document);
+    return Buffer.from(y.encodeStateVector(this.document));
   };
 
-  createPatch = (vector?: Uint8Array) => {
-    return Buffer.from(y.encodeStateAsUpdate(this.document, vector)).toString("base64");
+  createPatch = (vector?: Uint8Array | Buffer) => {
+    return Buffer.from(y.encodeStateAsUpdate(this.document, vector));
   };
 
-  applyPatch = (patch: string) => {
-    y.applyUpdate(this.document, Buffer.from(patch, "base64"));
+  applyPatch = (patch: Buffer) => {
+    y.applyUpdate(this.document, patch);
   };
 
-  static deserialize = (data: string) => {
+  static deserialize = (data: Buffer) => {
     const doc = new y.Doc();
-    y.applyUpdate(doc, Buffer.from(data, "base64"));
+    y.applyUpdate(doc, data);
 
     return new RoomState(doc);
   };
