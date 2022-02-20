@@ -22,14 +22,31 @@ export const createHTMLVideoManager = (
     });
   });
 
+  video.addEventListener("loadstart", () => {
+    handler({
+      type: video_manager.PlayerEventType.Ready,
+      status: {
+        paused: video.paused,
+        seeking: video.seeking,
+        time: video.currentTime
+      }
+    });
+  });
+
   return {
     pause: () => {
+      if (video.paused) {
+        return;
+      }
       console.log("pausing html video");
       lock.add(video_manager.PlayerEventType.Pause);
       video.pause();
     },
 
     resume: () => {
+      if (!video.paused) {
+        return;
+      }
       console.log("resuming html video");
       lock.add(video_manager.PlayerEventType.Play);
       video.play();
@@ -41,12 +58,16 @@ export const createHTMLVideoManager = (
       video.currentTime = time;
     },
 
-    getState: async () => {
-      return {
-        paused: video.paused,
-        seeking: video.seeking,
-        time: video.currentTime
-      };
+    getState: () => {
+      return new Promise((resolve) => {
+        setImmediate(() => {
+          resolve({
+            paused: video.paused,
+            seeking: video.seeking,
+            time: video.currentTime
+          });
+        });
+      });
     }
   };
 };

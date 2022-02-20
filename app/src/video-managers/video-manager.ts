@@ -1,4 +1,6 @@
 export enum PlayerEventType {
+  Ready = "ready",
+
   Play = "play",
   Pause = "pause",
 
@@ -22,12 +24,18 @@ export type PlayerEvent = {
   status: PlayerStatus;
 };
 
-export type NavigateEvent = PlayerEvent & {
+export type NavigateEvent = {
   type: PlayerEventType.Navigate;
+  status: PlayerStatus;
   url: string;
 };
 
-export type VideoEventHandler = (event: PlayerEvent | NavigateEvent) => void;
+export type ReadyEvent = {
+  type: PlayerEventType.Navigate;
+  status: PlayerStatus;
+};
+
+export type VideoEventHandler = (event: PlayerEvent | NavigateEvent | ReadyEvent) => void;
 
 export type VideoManager = {
   pause: () => void;

@@ -55,6 +55,8 @@ electron.ipcRenderer.on("dsync", (_e, event) => {
 const onPlayerLoaded = (new_player: HTMLVideoElement) => {
   console.log("Player found", new_player);
 
+  new_player.autoplay = false;
+
   player = new_player;
   emit({
     type: "player-loaded",
@@ -77,6 +79,14 @@ const onPlayerLoaded = (new_player: HTMLVideoElement) => {
         event: event,
         status: getPlayerStatus(new_player)
       });
+    });
+  });
+
+  new_player.addEventListener("loadstart", () => {
+    emit({
+      type: "player-event",
+      event: "ready",
+      status: getPlayerStatus(new_player)
     });
   });
 };

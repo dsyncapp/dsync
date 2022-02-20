@@ -17,11 +17,32 @@ type Client = {
 const clients = new Map<string, Client>();
 const rooms = new Map<string, Set<string>>();
 
+const createPingManager = (onTimeout: () => void) => {
+  let timeout = setTimeout(onTimeout, 10000);
+  return () => {
+    clearTimeout(timeout);
+    timeout = setTimeout(onTimeout, 10000);
+  };
+};
+
 server.on("connection", (socket) => {
   console.log("Client connected");
 
   let id: string | undefined;
   const joined_rooms = new Set<string>();
+
+  const pong = createPingManager(() => {
+    console.log(`Client ${id || "unknown"} timed out`);
+    socket.close();
+  });
+
+  setInterval(() => {
+    socket.ping();
+  }, 5000);
+
+  socket.on("pong", () => {
+    pong();
+  });
 
   socket.on("message", (message) => {
     const event = signaling_events.decode(message.toString());
@@ -90,7 +111,9 @@ server.on("connection", (socket) => {
             return;
           }
 
-          member.socket.send(JSON.stringify(event));
+          if (member.socket.readyState === ws.WebSocket.OPEN) {
+            member.socket.send(JSON.stringify(event));
+          }
         });
 
         return;

@@ -5,6 +5,7 @@ import * as y from "yjs";
 type SourceState = {
   playing: boolean;
   position?: number;
+  ts?: number;
 };
 
 type RoomMetadata = {
@@ -13,11 +14,8 @@ type RoomMetadata = {
 };
 
 export type Peer = {
-  client_id: string;
-  process_id: string;
-
-  heartbeat: string;
-
+  id: string;
+  ts: number;
   status: managers.PlayerStatus;
 };
 
@@ -36,7 +34,8 @@ const serializeRoomState = (doc: y.Doc): SerializedRoomState => {
   for (const [key, source] of sources.entries()) {
     serialized_sources[key] = {
       playing: source.get("playing") || false,
-      position: source.get("position")
+      position: source.get("position"),
+      ts: source.get("ts")
     };
   }
 
@@ -75,6 +74,7 @@ export class RoomState {
       }
 
       setIfDifferent(map, key, value);
+      setIfDifferent(map, "ts", Date.now());
     });
   };
 
@@ -118,9 +118,8 @@ export class RoomState {
         peers.set(constants.process_id, map);
       }
 
-      setIfDifferent(map, "client_id", constants.client_id);
-      setIfDifferent(map, "process_id", constants.process_id);
-      setIfDifferent(map, "heartbeat", new Date().toISOString());
+      setIfDifferent(map, "id", constants.process_id);
+      setIfDifferent(map, "ts", Date.now());
       setIfDifferent(map, "status", status);
     });
   };

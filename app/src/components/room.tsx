@@ -32,10 +32,14 @@ export const ActiveRoom: React.FC<Props> = (props) => {
 
   const active_source = props.room_state.metadata.source;
 
-  const source_state = props.room_state.sources[active_source];
-  const previous_source_state = previous_state.current?.sources[active_source];
-
   React.useEffect(() => {
+    const room_state = props.room_state;
+    const source_state = room_state.sources[active_source];
+    const previous = previous_state.current;
+    const previous_source_state = previous?.sources[active_source];
+
+    previous_state.current = room_state;
+
     if (!source_state) {
       return;
     }
@@ -48,48 +52,63 @@ export const ActiveRoom: React.FC<Props> = (props) => {
       }
     }
 
-    if (source_state.position !== previous_source_state?.position) {
-      if (source_state.position) {
+    if (source_state.position && source_state.position !== previous_source_state?.position) {
+      if (source_state.position > 0) {
         video_manager.current?.seek(source_state.position);
       }
     }
 
-    if (previous_state.current) {
-      if (api.utils.allPeersReady(props.room_state.peers) && !api.utils.allPeersReady(previous_state.current.peers)) {
-        console.log("resuming because all peers have become ready");
+    if (previous) {
+      if (
+        api.utils.allPeersReady(room_state.peers) &&
+        !api.utils.allPeersReady(previous.peers) &&
+        source_state.playing
+      ) {
+        console.log("Resuming as all peers have become ready");
         video_manager.current?.resume();
+        return;
       }
 
-      if (!api.utils.allPeersReady(props.room_state.peers) && api.utils.allPeersReady(previous_state.current.peers)) {
-        console.log("pausing because not all peers are ready");
+      if (!api.utils.allPeersReady(room_state.peers) && api.utils.allPeersReady(previous.peers)) {
+        console.log("Pausing as all peers are no longer ready");
         video_manager.current?.pause();
+        return;
       }
     }
 
-    video_manager.current?.getState().then((status) => {
-      if (!status.seeking) {
-        const delta = api.utils.getDeltaFromFurthestPeer(props.room_state.peers, constants.process_id);
-        if (delta) {
-          if (!delta.left?.status.seeking && !delta.right?.status.seeking) {
-            if (delta.delta > 1) {
-              console.log(delta);
-              console.log("More than 1s out of sync with furthest peer. Adjusting time");
-              video_manager.current?.seek(status.time - delta.delta / 2);
-            }
-          }
-        }
-      }
+    const us = room_state.peers[constants.process_id];
+    if (!us) {
+      return;
+    }
 
-      if (source_state.playing && status.paused && api.utils.allPeersReady(props.room_state.peers)) {
-        video_manager.current?.resume();
-      }
+    const delta = api.utils.getDeltaFromFurthestPeer(room_state.peers, us);
+    if (!delta) {
+      return;
+    }
 
-      if (!source_state.playing && !status.paused) {
-        video_manager.current?.pause();
-      }
-    });
+    const last_update = source_state.ts || 0;
+    if (delta.peer.ts < last_update || us.ts < last_update) {
+      return;
+    }
 
-    previous_state.current = props.room_state;
+    if (api.utils.peerIsReady(delta.peer) && api.utils.peerIsReady(us) && delta.diff > 1) {
+      console.log("More than 1s out of sync with furthest peer. Adjusting time");
+
+      video_manager.current?.getState().then((status) => {
+        // We adjust in steps to prevent over correcting for small deltas
+        video_manager.current?.seek(status.time - delta.diff / 2);
+      });
+
+      return;
+    }
+
+    if (source_state.playing && us.status.paused && api.utils.allPeersReady(room_state.peers)) {
+      video_manager.current?.resume();
+    }
+
+    if (!source_state.playing && !us.status.paused) {
+      video_manager.current?.pause();
+    }
   }, [props.room_state]);
 
   React.useEffect(() => {
@@ -98,7 +117,7 @@ export const ActiveRoom: React.FC<Props> = (props) => {
         props.room.state?.updateStatus({
           paused: true,
           seeking: false,
-          time: 0
+          time: -1
         });
         return;
       }
@@ -106,7 +125,7 @@ export const ActiveRoom: React.FC<Props> = (props) => {
       video_manager.current.getState().then((status) => {
         props.room.state?.updateStatus(status);
 
-        if (!status.paused && !api.utils.allPeersReady(props.room_state.peers)) {
+        if (!status.paused && !api.utils.allPeersReady(props.room.state?.toJSON().peers || {})) {
           video_manager.current?.pause();
         }
       });
@@ -119,9 +138,21 @@ export const ActiveRoom: React.FC<Props> = (props) => {
 
   const handleVideoEvent: video_managers.VideoEventHandler = (event) => {
     switch (event.type) {
+      case video_managers.PlayerEventType.Ready: {
+        console.log("Player loaded");
+        const room_state = props.room.state!.toJSON();
+        const source_state = room_state.sources[room_state.metadata.source];
+        if (source_state?.position && source_state.position > 0) {
+          console.log("Seeking to", source_state.position);
+          video_manager.current?.seek(source_state.position);
+        }
+      }
+
       case video_managers.PlayerEventType.Navigate: {
+        if (!event.url) {
+          return;
+        }
         console.log("webview navigated");
-        // @ts-ignore
         return props.room.state?.setSource(event.url);
       }
 

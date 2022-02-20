@@ -65,7 +65,7 @@ importers:
     dependencies:
       '@dsyncapp/dsync': link:../app
     devDependencies:
-      electron: 17.0.0
+      electron: 17.0.1
       electron-builder: 22.14.13
 
   events:
@@ -1220,6 +1220,7 @@ packages:
     resolution: {integrity: sha512-SVeeyiOeinV5JCPHXMdKOgK1YVbak/4+8WL2rBnfqRYpA5FaeFaQnQWb25x628am1w70CbipGDv9S51biph63A==}
     engines: {node: '>=8'}
     os: [darwin]
+    deprecated: 'Disk image license agreements are deprecated by Apple and will probably be removed in a future macOS release. Discussion at: https://github.com/argv-minus-one/dmg-license/issues/11'
     hasBin: true
     requiresBuild: true
     dependencies:
@@ -1316,8 +1317,8 @@ packages:
       - supports-color
     dev: true
 
-  /electron/17.0.0:
-    resolution: {integrity: sha512-3UXcBQMwbMWdPvGHaSdPMluHrd+/bc+K143MyvE5zVZ+S1XCHt4sau7dj6svJHns5llN0YG/c6h/vRfadIp8Zg==}
+  /electron/17.0.1:
+    resolution: {integrity: sha512-CBReR/QEOpgwMdt59lWCtj9wC8oHB6aAjMF1lhXcGew132xtp+C5N6EaXb/fmDceVYLouziYjbNcpeXsWrqdpA==}
     engines: {node: '>= 8.6'}
     hasBin: true
     requiresBuild: true
