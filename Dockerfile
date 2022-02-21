@@ -4,13 +4,14 @@ WORKDIR /app
 RUN npm i -g pnpm
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
-COPY events/package.json events/tsconfig.json events/
+
 COPY signaling-server/package.json signaling-server/tsconfig.json signaling-server/
+COPY protocols/package.json protocols/tsconfig.json protocols/
 
 RUN pnpm install --frozen-lockfile
 
 COPY signaling-server/src signaling-server/src/
-COPY events/src events/src/
+COPY protocols/src protocols/src/
 
 RUN pnpm build
 
