@@ -17,7 +17,7 @@ export const joinKnownRoom = (room_id: string) => {
 
   if (!room.state) {
     state.socket.send({
-      type: protocols.EventType.Sync,
+      type: protocols.signaling.EventType.Sync,
       room_id: room_id
     });
   }
@@ -50,7 +50,7 @@ export const observeRoom = (room: state.Room) => {
     if (origin === constants.process_id) {
       console.debug("emitting to peers", `${patch.length}B`);
       state.socket.send({
-        type: protocols.EventType.Sync,
+        type: protocols.signaling.EventType.Sync,
         room_id: room.id,
         patch: Buffer.from(patch)
       });
@@ -117,7 +117,7 @@ export const startRoomSyncLoop = () => {
     if (!event.patch && !event.vector) {
       console.log("Peer requested full sync");
       state.socket.send({
-        type: protocols.EventType.Sync,
+        type: protocols.signaling.EventType.Sync,
         room_id: event.room_id,
         patch: room.state.createPatch(),
         vector: room.state.getStateVector()
@@ -134,7 +134,7 @@ export const startRoomSyncLoop = () => {
       if (!crdt_utils.stateVectorsAreEqual(event.vector, room.state.getStateVector())) {
         console.log("Peer vector is out of sync. Emitting missing difference");
         state.socket.send({
-          type: protocols.EventType.Sync,
+          type: protocols.signaling.EventType.Sync,
           room_id: event.room_id,
           patch: room.state.createPatch(event.vector)
         });
@@ -151,14 +151,14 @@ export const startRoomSyncLoop = () => {
 
     if (!room.state) {
       return state.socket.send({
-        type: protocols.EventType.Sync,
+        type: protocols.signaling.EventType.Sync,
         room_id: room.id
       });
     }
 
     const vector = room.state.getStateVector();
     state.socket.send({
-      type: protocols.EventType.Sync,
+      type: protocols.signaling.EventType.Sync,
       room_id: room.id,
       vector: vector
     });

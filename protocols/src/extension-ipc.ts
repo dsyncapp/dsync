@@ -1,32 +1,23 @@
-import * as player_events from "./player-events";
+import * as ipc from "./ipc-events";
+import * as codecs from "./codecs";
 
-export type SetSource = {
-  type: "set-source";
-  source: string;
+type TabReference = {
+  reference_id: string;
 };
 
-export type PlayerEvent = {
-  type: "player-event";
-  payload: player_events.PlayerEvent;
+export type TabUpserted = {
+  type: "upsert-tab";
+  url: string;
 };
 
-export type StatusCommand = {
-  type: "pause" | "play" | "get-status";
+export type TabClosed = {
+  type: "tab-closed";
 };
 
-export type StatusResponseEvent = {
-  type: "current-status";
-  status: player_events.PlayerStatus;
+export type CloseTab = {
+  type: "close-tab";
 };
 
-export type SeekCommand = {
-  type: "seek";
-  time: number;
-};
+export type Event = TabReference & (ipc.IPCEvent | TabUpserted | TabClosed | CloseTab);
 
-export type ExtensionIPCEvent = SetSource | StatusCommand | SeekCommand | StatusResponseEvent | PlayerEvent;
-
-export const ExtensionIPCCodec = {
-  encode: (data: ExtensionIPCEvent) => JSON.stringify(data),
-  decode: (data: Buffer | string) => JSON.parse(data.toString()) as ExtensionIPCEvent
-};
+export const Codec = codecs.createBSONCodec((data: Event) => true);

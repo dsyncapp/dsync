@@ -1,17 +1,15 @@
+import * as codecs from "./codecs";
 import * as async from "async";
 import * as uuid from "uuid";
-
-export type Codec<T> = {
-  encode: (data: T) => Buffer | string;
-  decode: (data: Buffer | string) => T;
-};
 
 export type Listener<T> = (event: T) => void;
 
 export type CreateSocketClientParams<T> = {
   endpoint: string;
-  codec: Codec<T>;
+  codec: codecs.Codec<T>;
   handshake?: (socket: WebSocket) => Promise<void> | void;
+
+  onDisconnect?: () => void;
 };
 
 const createReadyPromise = (): [Promise<void>, () => void, () => void] => {
@@ -47,6 +45,8 @@ export const createSocketClient = <T>(params: CreateSocketClientParams<T>) => {
       setTimeout(() => {
         connect();
       }, 1000);
+
+      params.onDisconnect?.();
     };
 
     socket.onmessage = async (message) => {

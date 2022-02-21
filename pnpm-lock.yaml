@@ -6,11 +6,13 @@ importers:
     specifiers:
       '@types/node': 17.0.15
       concurrently: ^7.0.0
+      dotenv: ^16.0.0
       env-cmd: ^10.1.0
       typescript: 4.5.5
     devDependencies:
       '@types/node': 17.0.15
       concurrently: 7.0.0
+      dotenv: 16.0.0
       env-cmd: 10.1.0
       typescript: 4.5.5
 
@@ -18,6 +20,7 @@ importers:
     specifiers:
       '@dsyncapp/protocols': ^0.0.1
       '@geist-ui/icons': ^1.0.1
+      '@headlessui/react': ^1.5.0
       '@hookstate/core': ^3.0.13
       '@nextui-org/react': ^1.0.2-beta.2
       '@types/lodash': ^4.14.178
@@ -36,6 +39,7 @@ importers:
     dependencies:
       '@dsyncapp/protocols': link:../protocols
       '@geist-ui/icons': 1.0.1_react@17.0.2
+      '@headlessui/react': 1.5.0_react-dom@17.0.2+react@17.0.2
       '@hookstate/core': 3.0.13_react@17.0.2
       '@nextui-org/react': 1.0.2-beta.3_react-dom@17.0.2+react@17.0.2
       '@types/uuid': 8.3.4
@@ -57,18 +61,22 @@ importers:
     specifiers:
       '@dsyncapp/dsync': ^0.0.1
       '@dsyncapp/protocols': ^0.0.1
+      '@types/lodash': ^4.14.178
       '@types/uuid': ^8.3.4
       '@types/ws': ^8.2.2
       electron: ^17.0.0
       electron-builder: ^22.14.13
+      lodash: ^4.17.21
       uuid: ^8.3.2
       ws: ^8.4.2
     dependencies:
       '@dsyncapp/dsync': link:../app
       '@dsyncapp/protocols': link:../protocols
+      lodash: 4.17.21
       uuid: 8.3.2
       ws: 8.4.2
     devDependencies:
+      '@types/lodash': 4.14.178
       '@types/uuid': 8.3.4
       '@types/ws': 8.2.2
       electron: 17.0.1
@@ -77,15 +85,19 @@ importers:
   extension:
     specifiers:
       '@dsyncapp/protocols': ^0.0.1
+      '@types/uuid': ^8.3.4
       '@types/webextension-polyfill': ^0.8.2
       buffer: ^6.0.3
       esbuild: ^0.14.23
+      uuid: ^8.3.2
       webextension-polyfill: ^0.8.0
     dependencies:
       '@dsyncapp/protocols': link:../protocols
       buffer: 6.0.3
+      uuid: 8.3.2
       webextension-polyfill: 0.8.0
     devDependencies:
+      '@types/uuid': 8.3.4
       '@types/webextension-polyfill': 0.8.2
       esbuild: 0.14.23
 
@@ -321,6 +333,17 @@ packages:
       react: '>=16.13.0'
     dependencies:
       react: 17.0.2
+    dev: false
+
+  /@headlessui/react/1.5.0_react-dom@17.0.2+react@17.0.2:
+    resolution: {integrity: sha512-aaRnYxBb3MU2FNJf3Ut9RMTUqqU3as0aI1lQhgo2n9Fa67wRu14iOGqx93xB+uMNVfNwZ5B3y/Ndm7qZGuFeMQ==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: ^16 || ^17 || ^18
+      react-dom: ^16 || ^17 || ^18
+    dependencies:
+      react: 17.0.2
+      react-dom: 17.0.2_react@17.0.2
     dev: false
 
   /@hookstate/core/3.0.13_react@17.0.2:
@@ -1292,6 +1315,11 @@ packages:
 
   /dotenv-expand/5.1.0:
     resolution: {integrity: sha512-YXQl1DSa4/PQyRfgrv6aoNjhasp/p4qs9FjJ4q4cQk+8m4r6k4ZSiEyytKG8f8W9gi8WsQtIObNmKd+tMzNTmA==}
+    dev: true
+
+  /dotenv/16.0.0:
+    resolution: {integrity: sha512-qD9WU0MPM4SWLPJy/r2Be+2WgQj8plChsyrCNQzW/0WjvcJQiKQJ9mH3ZgB3fxbUUxgc/11ZJ0Fi5KiimWGz2Q==}
+    engines: {node: '>=12'}
     dev: true
 
   /dotenv/9.0.2:

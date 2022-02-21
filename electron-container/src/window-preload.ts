@@ -11,16 +11,29 @@ electron.contextBridge.exposeInMainWorld("ENV", {
 });
 
 electron.contextBridge.exposeInMainWorld("ExtensionIPC", {
-  send: (data: protocols.extension_ipc.ExtensionIPCEvent) => {
+  send: (data: protocols.extension_ipc.Event) => {
     electron.ipcRenderer.send("extension-ipc", data);
   },
-  subscribe: (listener: (event: protocols.extension_ipc.ExtensionIPCEvent) => void) => {
+  subscribe: (listener: (event: protocols.extension_ipc.Event) => void) => {
     const handler = (_: electron.IpcRendererEvent, data: any) => {
       listener(data);
     };
     electron.ipcRenderer.on("extension-ipc", handler);
     return () => {
       electron.ipcRenderer.off("extension-ipc", handler);
+    };
+  },
+
+  getStatus: () => {
+    electron.ipcRenderer.send("extension-status");
+  },
+  subscribeToStatus: (listener: (status: string) => void) => {
+    const handler = (_: electron.IpcRendererEvent, data: any) => {
+      listener(data.status);
+    };
+    electron.ipcRenderer.on("extension-status", handler);
+    return () => {
+      electron.ipcRenderer.off("extension-status", handler);
     };
   }
 });

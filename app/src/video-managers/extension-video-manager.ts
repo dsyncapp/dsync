@@ -1,33 +1,58 @@
+import * as protocols from "@dsyncapp/protocols";
 import * as video_manager from "./video-manager";
 
-type RegisteredPlayer = {
-  id: string;
+export type ExtensionVideoManager = video_manager.VideoManager & {
+  unmount: () => void;
 };
 
-export const createExtensionVideoManager = (handler: video_manager.VideoEventHandler): video_manager.VideoManager => {
-  let player: RegisteredPlayer | undefined;
+export const createExtensionVideoManager = (
+  reference_id: string,
+  handler: video_manager.VideoEventHandler
+): ExtensionVideoManager => {
+  let player_id: string;
 
-  let status_requests: Array<(status: video_manager.PlayerStatus) => void> = [];
+  let status_requests: Array<(status: protocols.ipc.PlayerState) => void> = [];
   const getStatus = () => {
-    return new Promise<video_manager.PlayerStatus>((resolve) => {
+    return new Promise<protocols.ipc.PlayerState>((resolve) => {
       status_requests.push(resolve);
       ExtensionIPC.send({
-        type: "get-status"
+        type: "get-state",
+        reference_id,
+        player_id
       });
     });
   };
 
-  ExtensionIPC.subscribe((event) => {
+  const subscription = ExtensionIPC.subscribe((event) => {
+    if (event.reference_id !== reference_id) {
+      return;
+    }
+
     switch (event.type) {
-      case "current-status": {
+      case "player-registered": {
+        player_id = event.player_id;
+        return;
+      }
+      case "player-state": {
+        if (event.player_id !== player_id) {
+          return;
+        }
         for (const request of status_requests) {
-          request(event.status);
+          request(event.state);
         }
         status_requests = [];
         return;
       }
       case "player-event": {
+        if (event.player_id !== player_id) {
+          return;
+        }
         return handler(event.payload);
+      }
+      case "player-deregistered": {
+        if (player_id === event.player_id) {
+          player_id = "";
+        }
       }
     }
   });
@@ -36,14 +61,18 @@ export const createExtensionVideoManager = (handler: video_manager.VideoEventHan
     pause: () => {
       console.log("pausing video");
       ExtensionIPC.send({
-        type: "pause"
+        type: "pause",
+        reference_id,
+        player_id
       });
     },
 
     resume: () => {
       console.log("resuming video");
       ExtensionIPC.send({
-        type: "play"
+        type: "play",
+        reference_id,
+        player_id
       });
     },
 
@@ -51,10 +80,20 @@ export const createExtensionVideoManager = (handler: video_manager.VideoEventHan
       console.log("seeking");
       ExtensionIPC.send({
         type: "seek",
-        time: time
+        time: time,
+        reference_id,
+        player_id
       });
     },
 
-    getState: getStatus
+    getState: getStatus,
+
+    unmount: () => {
+      subscription();
+      ExtensionIPC.send({
+        type: "close-tab",
+        reference_id: reference_id
+      });
+    }
   };
 };

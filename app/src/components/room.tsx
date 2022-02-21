@@ -1,4 +1,5 @@
 import * as video_managers from "../video-managers";
+import * as protocols from "@dsyncapp/protocols";
 import * as constants from "../constants";
 import styled from "styled-components";
 import * as state from "../state";
@@ -29,7 +30,7 @@ export const ActiveRoom: React.FC<Props> = (props) => {
   const video_manager = React.useRef<video_managers.VideoManager | null>(null);
 
   const previous_state = React.useRef<api.room_state.SerializedRoomState | undefined>();
-  const [source_type, setSourceType] = React.useState(SourceType.Web);
+  const [source_type, setSourceType] = React.useState(SourceType.Embedded);
 
   const active_source = props.room_state.metadata.source;
 
@@ -139,48 +140,43 @@ export const ActiveRoom: React.FC<Props> = (props) => {
 
   const handleVideoEvent: video_managers.VideoEventHandler = (event) => {
     switch (event.type) {
-      case video_managers.PlayerEventType.Ready: {
-        console.log("Player loaded");
-        const room_state = props.room.state!.toJSON();
-        const source_state = room_state.sources[room_state.metadata.source];
-        if (source_state?.position && source_state.position > 0) {
-          console.log("Seeking to", source_state.position);
-          video_manager.current?.seek(source_state.position);
-        }
-      }
-
-      case video_managers.PlayerEventType.Navigate: {
+      case "navigate": {
         if (!event.url) {
           return;
         }
-        console.log("webview navigated");
+        console.log(`Navigating to ${event.url}`);
         return props.room.state?.setSource(event.url);
       }
 
-      case video_managers.PlayerEventType.Play: {
+      case protocols.ipc.PlayerEventType.Play: {
         console.log("video resumed");
         return props.room.state?.resume();
       }
-      case video_managers.PlayerEventType.Pause: {
+      case protocols.ipc.PlayerEventType.Pause: {
         console.log("video paused");
         return props.room.state?.pause();
       }
-      case video_managers.PlayerEventType.Seeking: {
-        console.log("seeked to new position", event.status.time);
-        return props.room.state?.seek(event.status.time);
+      case protocols.ipc.PlayerEventType.Seeking: {
+        console.log("seeked to new position", event.state.time);
+        return props.room.state?.seek(event.state.time);
       }
     }
   };
 
   let source;
-
   switch (source_type) {
-    case SourceType.Web: {
+    case SourceType.Embedded: {
       if (!active_source) {
         break;
       }
-
       source = <WebSource source={active_source} ref={video_manager} onEvent={handleVideoEvent} />;
+      break;
+    }
+    case SourceType.Extension: {
+      if (!active_source) {
+        break;
+      }
+      source = <ExtensionSource source={active_source} ref={video_manager} onEvent={handleVideoEvent} />;
       break;
     }
     case SourceType.Manual: {

@@ -1,4 +1,4 @@
-import * as managers from "../video-managers";
+import * as protocols from "@dsyncapp/protocols"
 import * as constants from "../constants";
 import * as y from "yjs";
 
@@ -16,7 +16,7 @@ type RoomMetadata = {
 export type Peer = {
   id: string;
   ts: number;
-  status: managers.PlayerStatus;
+  status: protocols.ipc.PlayerState;
 };
 
 export type SerializedRoomState = {
@@ -108,7 +108,7 @@ export class RoomState {
     this.set("position", time);
   };
 
-  updateStatus = (status: managers.PlayerStatus) => {
+  updateStatus = (status: protocols.ipc.PlayerState) => {
     this.update((doc) => {
       const peers = doc.getMap<y.Map<any>>("peers");
 

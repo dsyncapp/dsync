@@ -1,24 +1,26 @@
+import * as protocols from "@dsyncapp/protocols";
 import * as electron from "electron";
 
 console.log("custom preload script was loaded successfully");
 
-const emit = (event: any) => {
+const emit = (event: protocols.ipc.IPCEvent) => {
   electron.ipcRenderer.sendToHost("dsync", event);
 };
 
-const lock = new Set();
+const player_id = String(electron.webFrame.routingId);
+const lock = new Set<protocols.ipc.PlayerEventType>();
 let player: HTMLVideoElement | undefined;
 
-const getPlayerStatus = (player: HTMLVideoElement) => {
+const getPlayerState = (player: HTMLVideoElement): protocols.ipc.PlayerState => {
   return {
     paused: player.paused,
     seeking: player.seeking,
-    time: player.currentTime,
-    duration: player.duration
+    time: player.currentTime
+    // duration: player.duration
   };
 };
 
-electron.ipcRenderer.on("dsync", (_e, event) => {
+electron.ipcRenderer.on("dsync", (_e, event: protocols.ipc.IPCEvent) => {
   if (!player) {
     return;
   }
@@ -28,25 +30,26 @@ electron.ipcRenderer.on("dsync", (_e, event) => {
       if (player.paused) {
         return;
       }
-      lock.add("pause");
+      lock.add(protocols.ipc.PlayerEventType.Pause);
       return player.pause();
     }
     case "play": {
       if (!player.paused) {
         return;
       }
-      lock.add("play");
+      lock.add(protocols.ipc.PlayerEventType.Play);
       return player.play();
     }
     case "seek": {
-      lock.add("seeking");
+      lock.add(protocols.ipc.PlayerEventType.Seeking);
       player.currentTime = event.time;
       return;
     }
-    case "get-status": {
+    case "get-state": {
       return emit({
-        type: "status-response",
-        status: getPlayerStatus(player)
+        type: "player-state",
+        player_id,
+        state: getPlayerState(player)
       });
     }
   }
@@ -55,38 +58,25 @@ electron.ipcRenderer.on("dsync", (_e, event) => {
 const onPlayerLoaded = (new_player: HTMLVideoElement) => {
   console.log("Player found", new_player);
 
-  new_player.autoplay = false;
-
   player = new_player;
   emit({
-    type: "player-loaded",
-    frame_id: electron.webFrame.routingId,
-    player_details: {
-      id: player.getAttribute("id"),
-      name: player.getAttribute("name"),
-      class_name: player.getAttribute("className")
-    }
+    type: "player-registered",
+    player_id
   });
 
-  const events = ["waiting", "play", "pause", "playing", "seeking", "seek"];
-  events.map((event) => {
+  Object.values(protocols.ipc.PlayerEventType).map((event) => {
     new_player.addEventListener(event, () => {
       if (lock.has(event)) {
         return lock.delete(event);
       }
       emit({
         type: "player-event",
-        event: event,
-        status: getPlayerStatus(new_player)
+        player_id,
+        payload: {
+          type: event,
+          state: getPlayerState(new_player)
+        }
       });
-    });
-  });
-
-  new_player.addEventListener("loadstart", () => {
-    emit({
-      type: "player-event",
-      event: "ready",
-      status: getPlayerStatus(new_player)
     });
   });
 };

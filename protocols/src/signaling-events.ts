@@ -1,4 +1,4 @@
-import * as bson from "bson";
+import * as codecs from "./codecs";
 import * as t from "zod";
 
 export enum EventType {
@@ -34,26 +34,7 @@ export type SyncEvent = t.infer<typeof SyncEvent>;
 export const Event = ConnectEvent.or(RoomEvent).or(SyncEvent);
 export type Event = t.infer<typeof Event>;
 
-export const decode = (data: Buffer | string) => {
-  try {
-    const event = bson.deserialize(Buffer.from(data), {
-      promoteBuffers: true,
-      validation: {
-        utf8: false
-      }
-    });
-    return Event.parse(event);
-  } catch (err) {
-    console.log(err);
-    throw err;
-  }
-};
-
-export const encode = (data: Event) => {
-  return bson.serialize(data);
-};
-
-export const SignalingEventCodec = {
-  decode,
-  encode
-};
+export const Codec = codecs.createBSONCodec((data: Event) => {
+  Event.parse(data);
+  return true;
+});

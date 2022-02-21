@@ -12,9 +12,11 @@
   "dependencies": {
     "@dsyncapp/protocols": "^0.0.1",
     "buffer": "^6.0.3",
+    "uuid": "^8.3.2",
     "webextension-polyfill": "^0.8.0"
   },
   "devDependencies": {
+    "@types/uuid": "^8.3.4",
     "@types/webextension-polyfill": "^0.8.2",
     "esbuild": "^0.14.23"
   }

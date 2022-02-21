@@ -6,10 +6,12 @@ import * as api from "../api";
 
 import CreateRoomModal from "./create-room-modal";
 import JoinRoomModal from "./join-room-modal";
+import DropDown from "./drop-down";
 import * as hooks from "../hooks";
 
 export enum SourceType {
-  Web = "web",
+  Embedded = "embedded",
+  Extension = "extension",
   Manual = "manual"
 }
 
@@ -43,17 +45,6 @@ export const AddressBar: React.FC<Props> = (props) => {
     setSource(props.active_source);
   }, [props.active_source]);
 
-  const getSourceIcon = () => {
-    switch (props.source_type) {
-      case SourceType.Web: {
-        return <Icons.Globe size={20} />;
-      }
-      case SourceType.Manual: {
-        return <Icons.Server size={20} />;
-      }
-    }
-  };
-
   let style: any = {};
   if (fullscreen) {
     style.display = "none";
@@ -62,21 +53,25 @@ export const AddressBar: React.FC<Props> = (props) => {
   return (
     <Next.Grid.Container style={{ padding: 5, ...style }} alignItems="center">
       <Next.Grid>
-        <Next.Button
-          onClick={() => {
-            if (props.source_type === SourceType.Web) {
-              props.onSourceTypeChange(SourceType.Manual);
-            } else {
-              props.onSourceTypeChange(SourceType.Web);
-            }
-
-            source_input.current?.focus();
+        <DropDown
+          active={props.source_type}
+          onSelect={(item) => {
+            props.onSourceTypeChange(item.value as SourceType);
           }}
-          icon={getSourceIcon()}
-          auto
-          bordered
-          size="xs"
-          style={{ marginRight: 10 }}
+          items={[
+            {
+              value: SourceType.Extension,
+              name: "Extension"
+            },
+            {
+              value: SourceType.Embedded,
+              name: "Embedded Browser"
+            },
+            {
+              value: SourceType.Manual,
+              name: "Local"
+            }
+          ]}
         />
       </Next.Grid>
 
@@ -84,7 +79,7 @@ export const AddressBar: React.FC<Props> = (props) => {
         <Next.Input
           ref={source_input}
           animated={false}
-          labelLeft={props.source_type === SourceType.Web ? "address" : "name"}
+          labelLeft={"source"}
           size="xs"
           fullWidth
           onChange={(e) => setSource(e.target.value)}

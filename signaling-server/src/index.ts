@@ -48,10 +48,10 @@ server.on("connection", (socket) => {
     if (Array.isArray(message)) {
       return;
     }
-    const event = protocols.SignalingEventCodec.decode(Buffer.from(message));
+    const event = protocols.signaling.Codec.decode(Buffer.from(message));
 
     if (!id) {
-      if (event.type === protocols.EventType.Connect) {
+      if (event.type === protocols.signaling.EventType.Connect) {
         console.log(`Client registered itself as ${event.id}`);
 
         id = event.id;
@@ -64,7 +64,7 @@ server.on("connection", (socket) => {
     }
 
     switch (event.type) {
-      case protocols.EventType.Join: {
+      case protocols.signaling.EventType.Join: {
         const room = rooms.get(event.id) || new Set();
         rooms.set(event.id, room);
 
@@ -75,7 +75,7 @@ server.on("connection", (socket) => {
         return;
       }
 
-      case protocols.EventType.Leave: {
+      case protocols.signaling.EventType.Leave: {
         const room = rooms.get(event.id);
         if (!room) {
           return;
@@ -92,7 +92,7 @@ server.on("connection", (socket) => {
         return;
       }
 
-      case protocols.EventType.Sync: {
+      case protocols.signaling.EventType.Sync: {
         const room = rooms.get(event.room_id);
         if (!room) {
           console.log(`Client ${id} is emitting sync event to unregistered room`);
@@ -112,7 +112,7 @@ server.on("connection", (socket) => {
           }
 
           if (member.socket.readyState === ws.WebSocket.OPEN) {
-            member.socket.send(protocols.SignalingEventCodec.encode(event));
+            member.socket.send(protocols.signaling.Codec.encode(event));
           }
         });
 

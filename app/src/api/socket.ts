@@ -10,21 +10,21 @@ export const createSocketClient = (params: CreateSocketClientParams) => {
 
   const rooms = new Set<string>();
 
-  const socket = protocols.createSocketClient({
+  const socket = protocols.ws.createSocketClient({
     endpoint: endpoint,
-    codec: protocols.SignalingEventCodec,
+    codec: protocols.signaling.Codec,
     handshake: async (socket) => {
       socket?.send(
-        protocols.SignalingEventCodec.encode({
-          type: protocols.EventType.Connect,
+        protocols.signaling.Codec.encode({
+          type: protocols.signaling.EventType.Connect,
           id: params.socket_id
         })
       );
 
       rooms.forEach((room) => {
         socket?.send(
-          protocols.SignalingEventCodec.encode({
-            type: protocols.EventType.Join,
+          protocols.signaling.Codec.encode({
+            type: protocols.signaling.EventType.Join,
             id: room
           })
         );
@@ -37,20 +37,20 @@ export const createSocketClient = (params: CreateSocketClientParams) => {
     joinRoom: (room_id: string) => {
       rooms.add(room_id);
       socket.send({
-        type: protocols.EventType.Join,
+        type: protocols.signaling.EventType.Join,
         id: room_id
       });
       return () => {
         rooms.delete(room_id);
         socket.send({
-          type: protocols.EventType.Leave,
+          type: protocols.signaling.EventType.Leave,
           id: room_id
         });
       };
     },
-    subscribe: (handler: protocols.Listener<protocols.SyncEvent>) => {
+    subscribe: (handler: protocols.ws.Listener<protocols.signaling.SyncEvent>) => {
       return socket.subscribe((event) => {
-        if (event.type === protocols.EventType.Sync) {
+        if (event.type === protocols.signaling.EventType.Sync) {
           handler(event);
         }
       });

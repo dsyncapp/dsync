@@ -2,32 +2,53 @@ import * as protocols from "@dsyncapp/protocols";
 import * as browser from "webextension-polyfill";
 
 type ActiveTab = {
+  reference_id: string;
+  id: number;
   tab: browser.Tabs.Tab;
-  port?: browser.Runtime.Port;
+  ports: Map<string, browser.Runtime.Port>;
 };
 
-let active_tab: ActiveTab | undefined;
+const tabs = new Map<string, ActiveTab>();
 
-browser.tabs.onRemoved.addListener((tab_id, info) => {
-  if (tab_id === active_tab?.tab.id) {
-    active_tab.port?.disconnect();
-    active_tab = undefined;
-
-    console.log("Active tab closed");
+const socket = protocols.ws.createSocketClient({
+  endpoint: "ws://localhost:52543",
+  codec: protocols.extension_ipc.Codec,
+  onDisconnect: () => {
+    tabs.forEach((tab) => {
+      browser.tabs.remove(tab.id);
+    });
+    tabs.clear();
   }
 });
 
-browser.tabs.onUpdated.addListener((tab_id, info) => {
-  if (tab_id === active_tab?.tab.id) {
-    if (info.status === "loading" && info.url) {
-      console.log("Active tab navigated", info.url);
+browser.tabs.onRemoved.addListener((tab_id) => {
+  for (const tab of tabs.values()) {
+    if (tab.id === tab_id) {
+      console.log(`tab ${tab.reference_id}[${tab.id}] closed`);
+
+      socket.send({
+        type: "tab-closed",
+        reference_id: tab.reference_id
+      });
+      tabs.delete(tab.reference_id);
     }
   }
 });
 
-const socket = protocols.createSocketClient({
-  endpoint: "ws://localhost:52543",
-  codec: protocols.extension_ipc.ExtensionIPCCodec
+browser.tabs.onUpdated.addListener((tab_id, info) => {
+  for (const tab of tabs.values()) {
+    if (tab.id === tab_id) {
+      if (info.status === "loading" && info.url) {
+        console.log(`tab ${tab.reference_id}[${tab.id}] navigated`, info.url);
+
+        socket.send({
+          type: "upsert-tab",
+          reference_id: tab.reference_id,
+          url: info.url
+        });
+      }
+    }
+  }
 });
 
 const createTab = (url: string) => {
@@ -45,52 +66,111 @@ const createTab = (url: string) => {
     if (tab) {
       resolve(tab);
     }
+  }).then(async (tab) => {
+    await browser.tabs.executeScript(tab.id, {
+      allFrames: true,
+      file: "/dist/polyfill.js"
+    });
+
+    await browser.tabs.executeScript(tab.id, {
+      allFrames: true,
+      file: "/dist/content.js"
+    });
+
+    return tab;
   });
 };
 
 socket.subscribe(async (event) => {
   switch (event.type) {
-    case "set-source": {
-      if (!active_tab) {
-        const tab = await createTab(event.source);
-
-        await browser.tabs.executeScript(tab.id, {
-          allFrames: true,
-          file: "/dist/polyfill.js"
-        });
-
-        await browser.tabs.executeScript(tab.id, {
-          allFrames: true,
-          file: "/dist/content.js"
-        });
-
-        active_tab = {
-          tab
+    case "upsert-tab": {
+      let tab = tabs.get(event.reference_id);
+      if (!tab) {
+        const new_tab = await createTab(event.url);
+        tab = {
+          tab: new_tab,
+          id: new_tab.id!,
+          ports: new Map(),
+          reference_id: event.reference_id
         };
+
+        tabs.set(event.reference_id, tab);
       }
 
-      if (active_tab.tab.url === event.source) {
+      if (tab.tab.url === event.url) {
         return;
       }
 
-      await browser.tabs.update(active_tab.tab.id!, {
-        url: event.source
+      await browser.tabs.update(tab.id, {
+        url: event.url
       });
       return;
     }
-    default: {
-      return active_tab?.port?.postMessage(event);
+
+    case "close-tab": {
+      const tab = tabs.get(event.reference_id);
+      if (!tab) {
+        return;
+      }
+
+      await browser.tabs.remove(tab.id);
+      tabs.delete(event.reference_id);
+
+      return;
+    }
+
+    case "seek":
+    case "pause":
+    case "play":
+    case "get-state": {
+      const tab = tabs.get(event.reference_id);
+      if (!tab) {
+        return;
+      }
+
+      const port = tab.ports.get(event.player_id);
+      if (!port) {
+        return;
+      }
+
+      console.log("sending command to port");
+      return port.postMessage(event);
     }
   }
 });
 
 browser.runtime.onConnect.addListener((port) => {
-  if (active_tab) {
-    active_tab.port = port;
-  }
+  for (const tab of tabs.values()) {
+    if (tab.id !== port.sender?.tab?.id) {
+      continue;
+    }
 
-  port.onMessage.addListener((event) => {
-    console.log("Received IPC event", event);
-    socket.send(event);
-  });
+    console.log(`Port ${port.name} registered on tab ${tab.reference_id}`);
+    tab.ports.set(port.name, port);
+
+    socket.send({
+      type: "player-registered",
+      player_id: port.name,
+      reference_id: tab.reference_id
+    });
+
+    port.onDisconnect.addListener(() => {
+      tab.ports.delete(port.name);
+
+      socket.send({
+        type: "player-deregistered",
+        player_id: port.name,
+        reference_id: tab.reference_id
+      });
+    });
+
+    port.onMessage.addListener((event: protocols.ipc.IPCEvent) => {
+      console.log("Received IPC event", event);
+      socket.send({
+        ...event,
+        reference_id: tab.reference_id,
+        player_id: port.name
+      });
+    });
+  }
 });
