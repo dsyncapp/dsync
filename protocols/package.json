@@ -10,14 +10,15 @@
   "author": "Julien Vincent",
   "license": "MIT",
   "dependencies": {
-    "uuid": "^8.3.2",
     "async": "^3.2.3",
     "bson": "^4.6.1",
+    "uuid": "^8.3.2",
     "ws": "^8.4.2",
     "zod": "^3.11.6"
   },
   "devDependencies": {
     "@types/async": "^3.2.12",
+    "@types/uuid": "^8.3.4",
     "@types/ws": "^8.2.2"
   }
 }

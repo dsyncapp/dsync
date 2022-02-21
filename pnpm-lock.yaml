@@ -104,6 +104,7 @@ importers:
   protocols:
     specifiers:
       '@types/async': ^3.2.12
+      '@types/uuid': ^8.3.4
       '@types/ws': ^8.2.2
       async: ^3.2.3
       bson: ^4.6.1
@@ -118,6 +119,7 @@ importers:
       zod: 3.11.6
     devDependencies:
       '@types/async': 3.2.12
+      '@types/uuid': 8.3.4
       '@types/ws': 8.2.2
 
   signaling-server:
