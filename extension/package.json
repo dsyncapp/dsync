@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/@types/index.js",
   "scripts": {
-    "build": "esbuild src/* --bundle --outdir=dist"
+    "build": "esbuild src/* --bundle --outdir=dist",
+    "release": "pnpm build && mkdir -p release && tar -czf release/extension.tar.gz ./dist manifest.json"
   },
   "author": "Julien Vincent",
   "license": "MIT",
