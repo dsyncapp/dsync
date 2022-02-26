@@ -21,6 +21,18 @@ const socket = protocols.ws.createSocketClient({
   }
 });
 
+const injectContentScripts = async (tab_id: number) => {
+  await browser.tabs.executeScript(tab_id, {
+    allFrames: true,
+    file: "/dist/polyfill.js"
+  });
+
+  await browser.tabs.executeScript(tab_id, {
+    allFrames: true,
+    file: "/dist/content.js"
+  });
+};
+
 browser.tabs.onRemoved.addListener((tab_id) => {
   for (const tab of tabs.values()) {
     if (tab.id === tab_id) {
@@ -38,14 +50,18 @@ browser.tabs.onRemoved.addListener((tab_id) => {
 browser.tabs.onUpdated.addListener((tab_id, info) => {
   for (const tab of tabs.values()) {
     if (tab.id === tab_id) {
-      if (info.status === "loading" && info.url) {
-        console.log(`tab ${tab.reference_id}[${tab.id}] navigated`, info.url);
+      if (info.status === "loading") {
+        injectContentScripts(tab.id);
 
-        socket.send({
-          type: "upsert-tab",
-          reference_id: tab.reference_id,
-          url: info.url
-        });
+        if (info.url) {
+          console.log(`tab ${tab.reference_id}[${tab.id}] navigated`, info.url);
+
+          socket.send({
+            type: "upsert-tab",
+            reference_id: tab.reference_id,
+            url: info.url
+          });
+        }
       }
     }
   }
@@ -67,16 +83,7 @@ const createTab = (url: string) => {
       resolve(tab);
     }
   }).then(async (tab) => {
-    await browser.tabs.executeScript(tab.id, {
-      allFrames: true,
-      file: "/dist/polyfill.js"
-    });
-
-    await browser.tabs.executeScript(tab.id, {
-      allFrames: true,
-      file: "/dist/content.js"
-    });
-
+    await injectContentScripts(tab.id!);
     return tab;
   });
 };
@@ -133,7 +140,6 @@ socket.subscribe(async (event) => {
         return;
       }
 
-      console.log("sending command to port");
       return port.postMessage(event);
     }
   }
@@ -155,6 +161,8 @@ browser.runtime.onConnect.addListener((port) => {
     });
 
     port.onDisconnect.addListener(() => {
+      console.log(`Port ${port.name} on tab ${tab.reference_id} disconnected`);
+
       tab.ports.delete(port.name);
 
       socket.send({
@@ -166,6 +174,7 @@ browser.runtime.onConnect.addListener((port) => {
 
     port.onMessage.addListener((event: protocols.ipc.IPCEvent) => {
       console.log("Received IPC event", event);
+
       socket.send({
         ...event,
         reference_id: tab.reference_id,

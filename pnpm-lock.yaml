@@ -64,6 +64,7 @@ importers:
       '@types/lodash': ^4.14.178
       '@types/uuid': ^8.3.4
       '@types/ws': ^8.2.2
+      dotenv: ^16.0.0
       electron: ^17.0.0
       electron-builder: ^22.14.13
       lodash: ^4.17.21
@@ -72,6 +73,7 @@ importers:
     dependencies:
       '@dsyncapp/dsync': link:../app
       '@dsyncapp/protocols': link:../protocols
+      dotenv: 16.0.0
       lodash: 4.17.21
       uuid: 8.3.2
       ws: 8.4.2
@@ -1322,7 +1324,6 @@ packages:
   /dotenv/16.0.0:
     resolution: {integrity: sha512-qD9WU0MPM4SWLPJy/r2Be+2WgQj8plChsyrCNQzW/0WjvcJQiKQJ9mH3ZgB3fxbUUxgc/11ZJ0Fi5KiimWGz2Q==}
     engines: {node: '>=12'}
-    dev: true
 
   /dotenv/9.0.2:
     resolution: {integrity: sha512-I9OvvrHp4pIARv4+x9iuewrWycX6CcZtoAu1XrzPxc5UygMJXJZYmBsynku8IkrJwgypE5DGNjDPmPRhDCptUg==}

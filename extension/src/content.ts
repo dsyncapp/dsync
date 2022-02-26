@@ -1,12 +1,11 @@
 import * as protocols from "@dsyncapp/protocols";
 import * as browser from "webextension-polyfill";
+import * as controllers from "./controllers";
 import * as uuid from "uuid";
-
-console.log("Extension content script loaded successfully");
 
 type Player = {
   id: string;
-  node: HTMLVideoElement;
+  controller: controllers.PlayerController;
   port: browser.Runtime.Port;
   event_lock: Set<string>;
 };
@@ -22,58 +21,49 @@ const emit = (id: string, event: protocols.ipc.IPCEvent) => {
   player.port.postMessage(event);
 };
 
-const getPlayerState = (id: string): protocols.ipc.PlayerState => {
-  const player = players.get(id);
-  if (!player) {
-    return {
-      paused: true,
-      seeking: false,
-      time: -1
-    };
-  }
-  return {
-    paused: player.node.paused,
-    seeking: player.node.seeking,
-    time: player.node.currentTime
-    // duration: player.node.duration
-  };
-};
-
 const listenForCommands = (player: Player) => {
   player.port.onMessage.addListener((message: protocols.ipc.IPCEvent) => {
     switch (message.type) {
       case "pause": {
-        if (player.node.paused) {
+        if (player.controller.state.paused) {
           return;
         }
+        console.log("Pausing");
+
         player.event_lock.add("pause");
-        return player.node.pause();
+        return player.controller.pause();
       }
       case "play": {
-        if (!player.node.paused) {
+        if (!player.controller.state.paused) {
           return;
         }
+        console.log("Playing");
+
         player.event_lock.add("play");
-        return player.node.play();
+        return player.controller.play();
       }
       case "seek": {
+        console.log("Seeking", message.time);
+
         player.event_lock.add("seeking");
-        player.node.currentTime = message.time;
+        player.controller.seek(message.time);
         return;
       }
       case "get-state": {
         return emit(player.id, {
           type: "player-state",
           player_id: player.id,
-          state: getPlayerState(player.id)
+          state: player.controller.state
         });
       }
     }
   });
 };
 
-const onPlayerLoaded = (video: HTMLVideoElement) => {
+const onPlayerLoaded = (controller: controllers.PlayerController) => {
   const id = uuid.v4();
+
+  console.log(`Player found. Assigning id ${id}`);
 
   const port = browser.runtime.connect({
     name: id
@@ -81,7 +71,7 @@ const onPlayerLoaded = (video: HTMLVideoElement) => {
 
   const player: Player = {
     id,
-    node: video,
+    controller,
     event_lock: new Set(),
     port
   };
@@ -90,27 +80,32 @@ const onPlayerLoaded = (video: HTMLVideoElement) => {
 
   listenForCommands(player);
 
-  Object.values(protocols.ipc.PlayerEventType).map((event) => {
-    video.addEventListener(event, () => {
-      if (player.event_lock.has(event)) {
-        return player.event_lock.delete(event);
-      }
-      emit(player.id, {
-        type: "player-event",
-        player_id: player.id,
-        payload: {
-          type: event,
-          state: getPlayerState(player.id)
-        }
-      });
+  controller.subscribe((event) => {
+    if (player.event_lock.has(event.type)) {
+      return player.event_lock.delete(event.type);
+    }
+    emit(player.id, {
+      type: "player-event",
+      player_id: player.id,
+      payload: event
     });
   });
 };
 
-const interval = setInterval(() => {
-  const players = document.getElementsByTagName("video");
-  if (players.length > 0) {
+// @ts-ignore
+if (!window.__dsyncapp_lock) {
+  // @ts-ignore
+  window.__dsyncapp_lock = true;
+
+  console.log("Extension content script loaded successfully");
+
+  const interval = setInterval(() => {
+    const player = controllers.scanForPlayer();
+    if (!player) {
+      return;
+    }
+
     clearInterval(interval);
-    onPlayerLoaded(players[0]);
-  }
-}, 200);
+    onPlayerLoaded(player);
+  }, 500);
+}

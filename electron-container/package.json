@@ -16,6 +16,7 @@
   "dependencies": {
     "@dsyncapp/dsync": "^0.0.1",
     "@dsyncapp/protocols": "^0.0.1",
+    "dotenv": "^16.0.0",
     "lodash": "^4.17.21",
     "uuid": "^8.3.2",
     "ws": "^8.4.2"
@@ -48,6 +49,26 @@
           "arch": [
             "x64",
             "arm64"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
           ]
         }
       ]

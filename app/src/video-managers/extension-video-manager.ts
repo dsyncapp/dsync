@@ -53,6 +53,13 @@ export const createExtensionVideoManager = (
         if (player_id === event.player_id) {
           player_id = "";
         }
+        return;
+      }
+      case "upsert-tab": {
+        return handler({
+          type: "navigate",
+          url: event.url
+        });
       }
     }
   });
