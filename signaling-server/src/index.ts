@@ -48,10 +48,10 @@ server.on("connection", (socket) => {
     if (Array.isArray(message)) {
       return;
     }
-    const event = protocols.signaling.Codec.decode(Buffer.from(message));
+    const event = protocols.server.ServerEventCodec.decode(Buffer.from(message));
 
     if (!id) {
-      if (event.type === protocols.signaling.EventType.Connect) {
+      if (event.type === protocols.server.EventType.Connect) {
         console.log(`Client registered itself as ${event.id}`);
 
         id = event.id;
@@ -64,7 +64,7 @@ server.on("connection", (socket) => {
     }
 
     switch (event.type) {
-      case protocols.signaling.EventType.Join: {
+      case protocols.server.EventType.Join: {
         const room = rooms.get(event.id) || new Set();
         rooms.set(event.id, room);
 
@@ -75,7 +75,7 @@ server.on("connection", (socket) => {
         return;
       }
 
-      case protocols.signaling.EventType.Leave: {
+      case protocols.server.EventType.Leave: {
         const room = rooms.get(event.id);
         if (!room) {
           return;
@@ -92,7 +92,49 @@ server.on("connection", (socket) => {
         return;
       }
 
-      case protocols.signaling.EventType.Sync: {
+      case protocols.server.EventType.Signal: {
+        if ("room_id" in event.payload) {
+          const room = rooms.get(event.payload.room_id);
+          if (!room) {
+            console.log(`Client ${id} is emitting sync event to unregistered room`);
+            return;
+          }
+
+          console.log(`Client ${id} is emitting sync event to room ${event.payload.room_id}`);
+
+          room.forEach((member_id) => {
+            if (member_id === id) {
+              return;
+            }
+
+            const member = clients.get(member_id);
+            if (!member) {
+              return;
+            }
+
+            if (member.socket.readyState === ws.WebSocket.OPEN) {
+              member.socket.send(protocols.server.ServerEventCodec.encode(event));
+            }
+          });
+
+          return;
+        }
+
+        const peer = clients.get(event.payload.peer_id);
+        if (!peer) {
+          console.log(`Client ${id} is emitting signal to unregistered peer`);
+          return;
+        }
+
+        console.log(`Client ${id} is emitting signal to peer ${event.payload.peer_id}`);
+        if (peer.socket.readyState === ws.WebSocket.OPEN) {
+          peer.socket.send(protocols.server.ServerEventCodec.encode(event));
+        }
+
+        return;
+      }
+
+      case protocols.server.EventType.PeerEvent: {
         const room = rooms.get(event.room_id);
         if (!room) {
           console.log(`Client ${id} is emitting sync event to unregistered room`);
@@ -112,7 +154,7 @@ server.on("connection", (socket) => {
           }
 
           if (member.socket.readyState === ws.WebSocket.OPEN) {
-            member.socket.send(protocols.signaling.Codec.encode(event));
+            member.socket.send(protocols.server.ServerEventCodec.encode(event));
           }
         });
 
