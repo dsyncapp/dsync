@@ -1,8 +1,8 @@
 import * as Next from "@nextui-org/react";
 import * as Icons from "@geist-ui/icons";
-import { Room } from "../state";
 import * as React from "react";
-import * as api from "../api";
+
+import * as api from "@dsyncapp/api";
 
 import CreateRoomModal from "./create-room-modal";
 import JoinRoomModal from "./join-room-modal";
@@ -11,21 +11,18 @@ import * as hooks from "../hooks";
 
 export enum SourceType {
   Embedded = "embedded",
-  Extension = "extension",
   Manual = "manual"
 }
 
 type Props = {
-  rooms: Room[];
-  active_room: string;
-  room_state: api.room_state.SerializedRoomState;
+  rooms: api.rooms.Room[];
+  active_room: api.rooms.Room;
 
-  onRoomClicked: (room: Room) => void;
+  onRoomClicked: (room: api.rooms.Room) => void;
   onCreateRoomClicked: (name: string) => void;
   onRoomJoined: (room_id: string) => void;
   onLeaveRoomClicked: () => void;
 
-  active_source: string;
   onActiveSourceChange: (source: string) => void;
 
   source_type: SourceType;
@@ -41,9 +38,13 @@ export const AddressBar: React.FC<Props> = (props) => {
   const source_input = React.useRef<HTMLInputElement | null>(null);
   const [source, setSource] = React.useState("");
 
+  const room_state = hooks.useRoomState(props.active_room);
+
   React.useEffect(() => {
-    setSource(props.active_source);
-  }, [props.active_source]);
+    if (room_state.metadata.source !== source) {
+      setSource(room_state.metadata.source || "");
+    }
+  }, [room_state.metadata.source]);
 
   let style: any = {};
   if (fullscreen) {
@@ -59,10 +60,6 @@ export const AddressBar: React.FC<Props> = (props) => {
             props.onSourceTypeChange(item.value as SourceType);
           }}
           items={[
-            {
-              value: SourceType.Extension,
-              name: "Extension"
-            },
             {
               value: SourceType.Embedded,
               name: "Embedded Browser"
@@ -85,7 +82,7 @@ export const AddressBar: React.FC<Props> = (props) => {
           onChange={(e) => setSource(e.target.value)}
           value={source}
           onBlur={() => {
-            setSource(props.active_source);
+            setSource(room_state.metadata.source || "");
           }}
           onKeyPress={(key) => {
             if (key.code === "Enter") {
@@ -103,10 +100,10 @@ export const AddressBar: React.FC<Props> = (props) => {
             color="warning"
             style={{ textOverflow: "ellipsis", marginLeft: 10 }}
             onClick={() => {
-              navigator.clipboard.writeText(props.active_room);
+              navigator.clipboard.writeText(props.active_room.id);
             }}
           >
-            room: {props.room_state.metadata.name || props.active_room}
+            room: {room_state.metadata.name || props.active_room.id}
           </Next.Button>
         </Next.Tooltip>
       </Next.Grid>
@@ -116,10 +113,10 @@ export const AddressBar: React.FC<Props> = (props) => {
           auto
           size="xs"
           flat
-          color={api.utils.allPeersReady(props.room_state.peers) ? "success" : "error"}
+          color={api.rooms.utils.allPeersReady(room_state.peers) ? "success" : "error"}
           style={{ marginLeft: 10 }}
         >
-          {api.utils.filterActivePeers(props.room_state.peers).length}
+          {api.rooms.utils.filterActivePeers(room_state.peers).length}
         </Next.Button>
       </Next.Grid>
 

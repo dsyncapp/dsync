@@ -1,0 +1,69 @@
+import * as date from "date-fns";
+import * as room from "./room";
+import * as _ from "lodash";
+import * as y from "yjs";
+
+export const filterActivePeers = (peers: Record<string, room.Peer>) => {
+  return Object.values(peers).filter((peer) => {
+    if (!peer.updated_at) {
+      return false;
+    }
+    const last_ts = new Date(peer.updated_at);
+    if (Math.abs(date.differenceInSeconds(new Date(), last_ts)) > 5) {
+      return false;
+    }
+    return true;
+  });
+};
+
+export const peerIsReady = (peer: room.Peer) => {
+  if (peer.status?.seeking) {
+    return false;
+  }
+
+  if (peer.status?.time === -1) {
+    return false;
+  }
+
+  return true;
+};
+
+export const allPeersReady = (peers: Record<string, room.Peer>) => {
+  return filterActivePeers(peers).reduce((ready, peer) => {
+    if (!ready) {
+      return false;
+    }
+    return peerIsReady(peer);
+  }, true);
+};
+
+export const getDeltaFromFurthestPeer = (peers: Record<string, room.Peer>, peer: room.Peer) => {
+  const active_peers = filterActivePeers(peers);
+
+  const [furthest] = _.sortBy(active_peers, (peer) => peer.status.time);
+  if (!furthest || furthest.id === peer.id) {
+    return;
+  }
+
+  return {
+    peer: furthest,
+    diff: peer.status.time - furthest.status.time
+  };
+};
+
+export const stateVectorsAreEqual = (left: Uint8Array, right: Uint8Array): boolean => {
+  const left_vector = y.decodeStateVector(left);
+  const right_vector = y.decodeStateVector(right);
+
+  if (left_vector.size !== right_vector.size) {
+    return false;
+  }
+
+  for (const [key, value] of left_vector) {
+    if (right_vector.get(key) !== value) {
+      return false;
+    }
+  }
+
+  return true;
+};

@@ -1,14 +1,14 @@
-import * as video_managers from "../video-managers";
+import * as video_managers from "../player-managers";
 import * as protocols from "@dsyncapp/protocols";
 import * as constants from "../constants";
 import styled from "styled-components";
-import * as state from "../state";
+import * as api from "@dsyncapp/api";
+import * as hooks from "../hooks";
+import * as store from "../store";
 import * as React from "react";
-import * as api from "../api";
 import * as _ from "lodash";
 
 import AddressBar, { SourceType } from "./address-bar";
-import ExtensionSource from "./extension-source";
 import ManualSource from "./manual-source";
 import WebSource from "./web-source";
 
@@ -21,147 +21,29 @@ const Container = styled.div`
 `;
 
 type Props = {
-  room_state: api.room_state.SerializedRoomState;
-  room: state.Room;
-  rooms: state.Room[];
+  rooms: api.rooms.Room[];
+  room: api.rooms.Room;
 };
 
 export const ActiveRoom: React.FC<Props> = (props) => {
-  const video_manager = React.useRef<video_managers.VideoManager | null>(null);
+  const [manager, setManager] = React.useState<api.player_managers.PlayerManager | undefined>();
 
-  const previous_state = React.useRef<api.room_state.SerializedRoomState | undefined>();
-  const [source_type, setSourceType] = React.useState(SourceType.Embedded);
+  const [source_type, setSourceType] = React.useState(SourceType.Manual);
 
-  const active_source = props.room_state.metadata.source;
-
-  React.useEffect(() => {
-    const room_state = props.room_state;
-    const source_state = room_state.sources[active_source];
-    const previous = previous_state.current;
-    const previous_source_state = previous?.sources[active_source];
-
-    previous_state.current = room_state;
-
-    if (!source_state) {
-      return;
-    }
-
-    if (source_state.playing !== previous_source_state?.playing) {
-      if (source_state.playing) {
-        video_manager.current?.resume();
-      } else {
-        video_manager.current?.pause();
-      }
-    }
-
-    if (source_state.position && source_state.position !== previous_source_state?.position) {
-      if (source_state.position > 0) {
-        video_manager.current?.seek(source_state.position);
-      }
-    }
-
-    if (previous) {
-      if (
-        api.utils.allPeersReady(room_state.peers) &&
-        !api.utils.allPeersReady(previous.peers) &&
-        source_state.playing
-      ) {
-        console.log("Resuming as all peers have become ready");
-        video_manager.current?.resume();
-        return;
-      }
-
-      if (!api.utils.allPeersReady(room_state.peers) && api.utils.allPeersReady(previous.peers)) {
-        console.log("Pausing as all peers are no longer ready");
-        video_manager.current?.pause();
-        return;
-      }
-    }
-
-    const us = room_state.peers[constants.process_id];
-    if (!us) {
-      return;
-    }
-
-    const delta = api.utils.getDeltaFromFurthestPeer(room_state.peers, us);
-    if (!delta) {
-      return;
-    }
-
-    const last_update = source_state.ts || 0;
-    if (delta.peer.ts < last_update || us.ts < last_update) {
-      return;
-    }
-
-    if (api.utils.peerIsReady(delta.peer) && api.utils.peerIsReady(us) && delta.diff > 1) {
-      console.log("More than 1s out of sync with furthest peer. Adjusting time");
-
-      video_manager.current?.getState().then((status) => {
-        // We adjust in steps to prevent over correcting for small deltas
-        video_manager.current?.seek(status.time - delta.diff / 2);
-      });
-
-      return;
-    }
-
-    if (source_state.playing && us.status.paused && api.utils.allPeersReady(room_state.peers)) {
-      video_manager.current?.resume();
-    }
-
-    if (!source_state.playing && !us.status.paused) {
-      video_manager.current?.pause();
-    }
-  }, [props.room_state]);
+  const room_state = hooks.useRoomState(props.room);
+  const active_source = room_state.metadata.source || "";
 
   React.useEffect(() => {
-    const interval = setInterval(() => {
-      if (!video_manager.current) {
-        props.room.state?.updateStatus({
-          paused: true,
-          seeking: false,
-          time: -1
-        });
-        return;
-      }
-
-      video_manager.current.getState().then((status) => {
-        props.room.state?.updateStatus(status);
-
-        if (!status.paused && !api.utils.allPeersReady(props.room.state?.toJSON().peers || {})) {
-          video_manager.current?.pause();
-        }
-      });
-    }, 500);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
-
-  const handleVideoEvent: video_managers.VideoEventHandler = (event) => {
-    switch (event.type) {
-      case "navigate": {
-        if (!event.url) {
-          return;
-        }
-        console.log(`Navigating to ${event.url}`);
-        return props.room.state?.setSource(event.url);
-      }
-
-      case protocols.ipc.PlayerEventType.Play: {
-        console.log("video resumed");
-        return props.room.state?.resume();
-      }
-      case protocols.ipc.PlayerEventType.Pause: {
-        console.log("video paused");
-        return props.room.state?.pause();
-      }
-      case protocols.ipc.PlayerEventType.Seeking: {
-        console.log("seeked to new position", event.state.time);
-        return props.room.state?.seek(event.state.time);
-      }
+    if (!manager) {
+      return;
     }
-  };
+
+    return api.player_managers.bindPlayerToRoom({
+      manager: manager,
+      room: props.room,
+      peer_id: constants.process_id
+    });
+  }, [manager]);
 
   let source;
   switch (source_type) {
@@ -169,18 +51,11 @@ export const ActiveRoom: React.FC<Props> = (props) => {
       if (!active_source) {
         break;
       }
-      source = <WebSource source={active_source} ref={video_manager} onEvent={handleVideoEvent} />;
-      break;
-    }
-    case SourceType.Extension: {
-      if (!active_source) {
-        break;
-      }
-      source = <ExtensionSource source={active_source} ref={video_manager} onEvent={handleVideoEvent} />;
+      source = <WebSource source={active_source} onMount={setManager} />;
       break;
     }
     case SourceType.Manual: {
-      source = <ManualSource ref={video_manager} onEvent={handleVideoEvent} />;
+      source = <ManualSource onMount={setManager} />;
       break;
     }
   }
@@ -189,17 +64,15 @@ export const ActiveRoom: React.FC<Props> = (props) => {
     <Container>
       <AddressBar
         rooms={props.rooms}
-        active_room={props.room.id}
-        room_state={props.room_state}
-        onRoomClicked={(room) => api.rooms.joinKnownRoom(room.id)}
-        onCreateRoomClicked={api.rooms.createRoom}
-        onRoomJoined={api.rooms.joinNewRoom}
+        active_room={props.room}
+        onRoomClicked={(room) => store.joinRoom(room.id)}
+        onCreateRoomClicked={store.createRoom}
+        onRoomJoined={store.joinNewRoom}
         source_type={source_type}
         onSourceTypeChange={setSourceType}
-        active_source={active_source}
-        onLeaveRoomClicked={api.rooms.leaveRoom}
+        onLeaveRoomClicked={store.leaveRoom}
         onActiveSourceChange={(source) => {
-          props.room.state?.setSource(source);
+          props.room.setSource(source, constants.process_id);
         }}
       />
 

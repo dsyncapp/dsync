@@ -9,6 +9,7 @@ export type CreateSocketClientParams<T> = {
   codec: codecs.Codec<T>;
   handshake?: (socket: WebSocket) => Promise<void> | void;
 
+  onConnect?: () => void;
   onDisconnect?: () => void;
 };
 
@@ -28,6 +29,8 @@ const createReadyPromise = (): [Promise<void>, () => void, () => void] => {
 export const createSocketClient = <T>(params: CreateSocketClientParams<T>) => {
   const listeners = new Map<string, Listener<T>>();
 
+  let closed = false;
+
   let socket: WebSocket;
   let [ready, resolve, reject] = createReadyPromise();
 
@@ -37,14 +40,18 @@ export const createSocketClient = <T>(params: CreateSocketClientParams<T>) => {
     socket.onopen = async () => {
       await params.handshake?.(socket);
       resolve();
+      params.onConnect?.();
     };
 
     socket.onclose = () => {
       reject();
       [ready, resolve, reject] = createReadyPromise();
-      setTimeout(() => {
-        connect();
-      }, 1000);
+
+      if (!closed) {
+        setTimeout(() => {
+          connect();
+        }, 1000);
+      }
 
       params.onDisconnect?.();
     };
@@ -78,6 +85,10 @@ export const createSocketClient = <T>(params: CreateSocketClientParams<T>) => {
       return () => {
         listeners.delete(id);
       };
+    },
+    disconnect: () => {
+      closed = true;
+      socket.close();
     }
   };
 };

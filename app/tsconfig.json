@@ -17,5 +17,13 @@
     "incremental": true
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "src/global.d.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "references": [
+    {
+      "path": "../protocols"
+    },
+    {
+      "path": "../api"
+    }
+  ]
 }

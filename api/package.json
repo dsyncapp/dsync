@@ -1,0 +1,23 @@
+{
+  "name": "@dsyncapp/api",
+  "version": "0.0.1",
+  "description": "Core API",
+  "main": "dist/index.js",
+  "types": "dist/@types/index.js",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "author": "Julien Vincent",
+  "license": "MIT",
+  "dependencies": {
+    "@dsyncapp/protocols": "^0.0.1",
+    "date-fns": "^2.28.0",
+    "idb": "^7.0.0",
+    "mobx": "^6.4.2",
+    "uuid": "^8.3.2",
+    "yjs": "^13.5.27"
+  },
+  "devDependencies": {
+    "@types/uuid": "^8.3.4"
+  }
+}

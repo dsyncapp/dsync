@@ -1,4 +1,4 @@
-import * as codecs from "./codecs";
+import * as codecs from "../codecs";
 
 export enum PlayerEventType {
   Play = "play",

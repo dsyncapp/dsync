@@ -1,40 +1,23 @@
-import * as video_manager from "../video-managers";
+import * as player_managers from "../player-managers";
+import * as api from "@dsyncapp/api";
 import * as React from "react";
 
 type Props = {
-  onEvent: video_manager.VideoEventHandler;
   url: string;
+  onMount: (manager: api.player_managers.PlayerManager) => void;
 };
 
-export const VideoSource = React.forwardRef<video_manager.VideoManager, Props>((props, ref) => {
+export const VideoSource: React.FC<Props> = (props, ref) => {
   const video = React.useRef<HTMLVideoElement | null>(null);
-
-  React.useEffect(() => {
-    return () => {
-      if (typeof ref === "function") {
-        ref(null);
-      } else if (ref) {
-        ref.current = null;
-      }
-    };
-  }, []);
 
   return (
     <video
       controls
       ref={(element) => {
         if (element) {
-          if (!video.current || video.current !== element) {
-            const manager = video_manager.createHTMLVideoManager(element, props.onEvent);
+          if (!video.current) {
+            props.onMount(player_managers.createHTMLPlayerManager(element));
             video.current = element;
-
-            if (ref) {
-              if (typeof ref === "function") {
-                ref(manager);
-              } else {
-                ref.current = manager;
-              }
-            }
           }
         }
       }}
@@ -42,6 +25,6 @@ export const VideoSource = React.forwardRef<video_manager.VideoManager, Props>((
       src={props.url}
     />
   );
-});
+};
 
 export default VideoSource;

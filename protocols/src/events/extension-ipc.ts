@@ -1,5 +1,5 @@
 import * as ipc from "./ipc-events";
-import * as codecs from "./codecs";
+import * as codecs from "../codecs";
 
 type TabReference = {
   reference_id: string;

@@ -1,24 +1,15 @@
-import * as video_manager from "../video-managers";
+import * as player_managers from "../player-managers";
+import * as constants from "../constants";
+import * as api from "@dsyncapp/api";
 import * as React from "react";
 
 type Props = {
-  onEvent: video_manager.VideoEventHandler;
+  onMount: (manager: api.player_managers.PlayerManager) => void;
   source: string;
 };
 
-export const WebSource = React.forwardRef<video_manager.VideoManager, Props>((props, ref) => {
+export const WebSource: React.FC<Props> = (props, ref) => {
   const webview = React.useRef<HTMLWebViewElement | null>(null);
-  const manager = React.useRef<video_manager.VideoManager | null>(null);
-
-  React.useEffect(() => {
-    return () => {
-      if (typeof ref === "function") {
-        ref(null);
-      } else if (ref) {
-        ref.current = null;
-      }
-    };
-  }, []);
 
   return (
     <webview
@@ -26,9 +17,8 @@ export const WebSource = React.forwardRef<video_manager.VideoManager, Props>((pr
       nodeintegrationinsubframes="true"
       ref={(element) => {
         if (element) {
-          if (!webview.current || webview.current !== element) {
-            console.log("creating new web view video manager");
-            manager.current = video_manager.createWebViewVideoManager(element, props.onEvent);
+          if (!webview.current) {
+            props.onMount(player_managers.createWebViewPlayerManager(element));
             webview.current = element;
 
             element.addEventListener("enter-html-full-screen", () => {
@@ -38,21 +28,13 @@ export const WebSource = React.forwardRef<video_manager.VideoManager, Props>((pr
               document.dispatchEvent(new Event("webview-exit-full-screen"));
             });
           }
-
-          if (ref) {
-            if (typeof ref === "function") {
-              ref(manager.current);
-            } else {
-              ref.current = manager.current;
-            }
-          }
         }
       }}
       style={{ width: "100%", height: "100%" }}
       src={props.source}
-      preload={ENV.WEBVIEW_PRELOAD_FILE}
+      preload={constants.ENV.WEBVIEW_PRELOAD_FILE}
     />
   );
-});
+};
 
 export default WebSource;

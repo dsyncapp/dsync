@@ -1,15 +1,16 @@
 import * as Next from "@nextui-org/react";
 import * as Icons from "@geist-ui/icons";
 import styled from "styled-components";
-import { Room } from "../state";
 import * as React from "react";
+
+import * as api from "@dsyncapp/api"
 
 import CreateRoomModal from "./create-room-modal";
 import JoinRoomModal from "./join-room-modal";
 
 type Props = {
-  rooms: Room[];
-  onRoomSelected: (room: Room) => void;
+  rooms: api.rooms.Room[];
+  onRoomSelected: (room: api.rooms.Room) => void;
   onCreateRoomClicked: (name: string) => void;
   onRoomJoined: (room_id: string) => void;
   onRoomDelete: (room_id: string) => void;

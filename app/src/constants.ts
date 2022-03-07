@@ -13,3 +13,8 @@ if (stored_client_id) {
 }
 
 export const process_id = uuid.v4();
+
+export const ENV = global.ENV || {
+  API_ENDPOINT: 'ws://localhost:9987',
+  WEBVIEW_PRELOAD_FILE: 'unknown'
+}

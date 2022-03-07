@@ -1,31 +1,18 @@
-import * as hookstate from "@hookstate/core";
-import * as state from "../state";
+import * as api from "@dsyncapp/api";
 import * as React from "react";
-import * as api from "../api";
 import * as _ from "lodash";
 
-export const useRoomState = (room?: hookstate.State<state.Room>) => {
-  const [room_state, setRoomState] = React.useState<api.room_state.SerializedRoomState | undefined>();
+export const useRoomState = (room: api.rooms.Room) => {
+  const [state, setState] = React.useState<api.rooms.RoomState>(room.getState());
 
   React.useEffect(() => {
-    const state = room?.state.value;
-    if (!room || !state) {
-      if (room_state) {
-        setRoomState(undefined);
-      }
-      return;
-    }
-
-    setRoomState(state.toJSON());
-
-    return state.observe(() => {
-      const next = state.toJSON();
-      if (_.isEqual(next, room_state)) {
+    return room.observe((event) => {
+      if (_.isEqual(event.current, state)) {
         return;
       }
-      setRoomState(next);
+      setState(event.current);
     });
-  }, [room?.value.id, !!room?.state.value]);
+  }, []);
 
-  return room_state;
+  return state;
 };

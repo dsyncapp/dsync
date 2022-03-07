@@ -1,14 +1,14 @@
-import * as video_manager from "../video-managers";
 import * as Next from "@nextui-org/react";
 import * as React from "react";
 
+import * as api from "@dsyncapp/api";
 import VideoSource from "./video-source";
 
 type Props = {
-  onEvent: video_manager.VideoEventHandler;
+  onMount: (manager: api.player_managers.PlayerManager) => void;
 };
 
-export const ManualSource = React.forwardRef<video_manager.VideoManager, Props>((props, ref) => {
+export const ManualSource: React.FC<Props> = (props) => {
   const file_input = React.useRef<HTMLInputElement | null>(null);
   const [file_url, setFileUrl] = React.useState<string>();
 
@@ -20,7 +20,7 @@ export const ManualSource = React.forwardRef<video_manager.VideoManager, Props>(
   return (
     <>
       {file_url ? (
-        <VideoSource onEvent={props.onEvent} ref={ref} url={file_url} />
+        <VideoSource onMount={props.onMount} url={file_url} />
       ) : (
         <Next.Button
           onClick={() => {
@@ -44,6 +44,6 @@ export const ManualSource = React.forwardRef<video_manager.VideoManager, Props>(
       />
     </>
   );
-});
+};
 
 export default ManualSource;

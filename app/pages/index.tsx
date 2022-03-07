@@ -1,42 +1,47 @@
-import * as Next from "@nextui-org/react";
+import * as mobx from "mobx-react-lite";
 import type { NextPage } from "next";
 import * as React from "react";
 
-import * as state from "../src/state";
+import * as constants from "../src/constants";
+import * as api from "@dsyncapp/api";
+
+import * as store from "../src/store";
 import * as hooks from "../src/hooks";
-import * as api from "../src/api";
 
 import RoomSelector from "../src/components/room-selector";
 import Room from "../src/components/room";
 
-const Home: NextPage = () => {
+const Home: NextPage = mobx.observer(() => {
   const [loading, setLoading] = React.useState(false);
-  const { rooms, room } = state.useRooms();
-
-  const room_state = hooks.useRoomState(room);
 
   React.useEffect(() => {
     setLoading(true);
 
     (async () => {
       try {
-        const rooms = await api.db.getRooms();
-        rooms.forEach(api.rooms.observeRoom);
-        state.Rooms.merge(rooms);
+        await store.loadRooms();
       } finally {
         setLoading(false);
       }
     })();
-
-    return api.rooms.startRoomSyncLoop();
   }, []);
 
   React.useEffect(() => {
-    if (!room) {
+    if (!store.state.active_room) {
       return;
     }
-    return state.socket.joinRoom(room.value.id);
-  }, [room?.value.id]);
+    const activation = api.rooms.activateRoom({
+      room: store.state.active_room,
+      peer_id: constants.process_id,
+      client: api.clients.createWebSocketClient({
+        endpoint: constants.ENV.API_ENDPOINT,
+        peer_id: constants.process_id,
+        room_id: store.state.active_room.id
+      })
+    });
+
+    return activation.shutdown;
+  }, [store.state.active_room]);
 
   if (loading) {
     return <p>Loading</p>;
@@ -44,21 +49,21 @@ const Home: NextPage = () => {
 
   return (
     <div style={{ height: "100vh", width: "100vw" }}>
-      {room && room_state ? (
-        <Room rooms={rooms.value} room={room.value} room_state={room_state} />
-      ) : room ? (
+      {store.state.active_room?.synced ? (
+        <Room rooms={store.state.rooms} room={store.state.active_room} />
+      ) : store.state.active_room ? (
         <p>Room loading</p>
       ) : (
         <RoomSelector
-          rooms={rooms.value}
-          onRoomSelected={(room) => api.rooms.joinKnownRoom(room.id)}
-          onCreateRoomClicked={api.rooms.createRoom}
-          onRoomJoined={api.rooms.joinNewRoom}
-          onRoomDelete={api.rooms.deleteRoom}
+          rooms={store.state.rooms}
+          onRoomSelected={(room) => store.joinRoom(room.id)}
+          onCreateRoomClicked={store.createRoom}
+          onRoomJoined={store.joinNewRoom}
+          onRoomDelete={store.deleteRoom}
         />
       )}
     </div>
   );
-};
+});
 
 export default Home;

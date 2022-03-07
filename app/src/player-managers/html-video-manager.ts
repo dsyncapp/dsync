@@ -1,29 +1,39 @@
 import * as protocols from "@dsyncapp/protocols";
-import * as video_manager from "./video-manager";
+import * as api from "@dsyncapp/api";
+import * as uuid from "uuid";
 
-export const createHTMLVideoManager = (
-  video: HTMLVideoElement,
-  handler: video_manager.VideoEventHandler
-): video_manager.VideoManager => {
+export const createHTMLPlayerManager = (video: HTMLVideoElement): api.player_managers.PlayerManager => {
   const lock = new Set<protocols.ipc.PlayerEventType>();
+  const listeners = new Map<string, api.player_managers.PlayerEventHandler>();
 
   Object.values(protocols.ipc.PlayerEventType).forEach((event) => {
     video.addEventListener(event, () => {
       if (lock.has(event)) {
         return lock.delete(event);
       }
-      handler({
-        type: event,
-        state: {
-          paused: video.paused,
-          seeking: video.seeking,
-          time: video.currentTime
-        }
+      listeners.forEach((listener) => {
+        listener({
+          type: event,
+          state: {
+            paused: video.paused,
+            seeking: video.seeking,
+            time: video.currentTime
+          }
+        });
       });
     });
   });
 
   return {
+    play: () => {
+      if (!video.paused) {
+        return;
+      }
+      console.log("resuming html video");
+      lock.add(protocols.ipc.PlayerEventType.Play);
+      video.play();
+    },
+
     pause: () => {
       if (video.paused) {
         return;
@@ -31,15 +41,6 @@ export const createHTMLVideoManager = (
       console.log("pausing html video");
       lock.add(protocols.ipc.PlayerEventType.Pause);
       video.pause();
-    },
-
-    resume: () => {
-      if (!video.paused) {
-        return;
-      }
-      console.log("resuming html video");
-      lock.add(protocols.ipc.PlayerEventType.Play);
-      video.play();
     },
 
     seek: (time: number) => {
@@ -53,6 +54,14 @@ export const createHTMLVideoManager = (
         paused: video.paused,
         seeking: video.seeking,
         time: video.currentTime
+      };
+    },
+
+    subscribe: (listener) => {
+      const id = uuid.v4();
+      listeners.set(id, listener);
+      return () => {
+        listeners.delete(id);
       };
     }
   };

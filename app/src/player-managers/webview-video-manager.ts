@@ -1,10 +1,13 @@
-import * as video_manager from "./video-manager";
 import * as protocols from "@dsyncapp/protocols";
+import * as api from "@dsyncapp/api";
+import * as uuid from "uuid";
 
-export const createWebViewVideoManager = (
-  webview: HTMLWebViewElement,
-  handler: video_manager.VideoEventHandler
-): video_manager.VideoManager => {
+export const createWebViewPlayerManager = (webview: HTMLWebViewElement): api.player_managers.PlayerManager => {
+  const listeners = new Map<string, api.player_managers.PlayerEventHandler>();
+  const emit = (event: api.player_managers.PlayerEvent) => {
+    listeners.forEach((listener) => listener(event));
+  };
+
   let player_id: string;
 
   const sendEvent = (event: protocols.ipc.IPCEvent) => {
@@ -27,7 +30,7 @@ export const createWebViewVideoManager = (
   };
 
   webview.addEventListener("did-navigate", async (event: any) => {
-    handler({
+    emit({
       type: "navigate",
       // @ts-ignore
       url: webview.getURL()
@@ -35,7 +38,7 @@ export const createWebViewVideoManager = (
   });
 
   webview.addEventListener("did-navigate-in-page", async (event: any) => {
-    handler({
+    emit({
       type: "navigate",
       // @ts-ignore
       url: webview.getURL()
@@ -69,24 +72,24 @@ export const createWebViewVideoManager = (
         return;
       }
       case "player-event": {
-        return handler(event.payload);
+        return emit(event.payload);
       }
     }
   });
 
   return {
-    pause: () => {
-      console.log("pausing video");
+    play: () => {
+      console.log("resuming video");
       sendEvent({
-        type: "pause",
+        type: "play",
         player_id: player_id
       });
     },
 
-    resume: () => {
-      console.log("resuming video");
+    pause: () => {
+      console.log("pausing video");
       sendEvent({
-        type: "play",
+        type: "pause",
         player_id: player_id
       });
     },
@@ -100,6 +103,14 @@ export const createWebViewVideoManager = (
       });
     },
 
-    getState: getStatus
+    getState: getStatus,
+
+    subscribe: (listener) => {
+      const id = uuid.v4();
+      listeners.set(id, listener);
+      return () => {
+        listeners.delete(id);
+      };
+    }
   };
 };
