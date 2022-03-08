@@ -4,12 +4,12 @@
     "declarationDir": "dist/@types",
     "lib": ["ESNext", "DOM"],
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": "core",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "useUnknownInCatchVariables": false
   },
-  "include": ["src"],
+  "include": ["core"],
   "references": [
     {
       "path": "../protocols"

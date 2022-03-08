@@ -1,25 +1,56 @@
-import * as protocols from "@dsyncapp/protocols";
+import * as ipc_player_manager from "./ipc-player-manager";
 import * as browser from "webextension-polyfill";
+import * as api from "@dsyncapp/api";
+import * as socket from "./socket";
+import * as mobx from "mobx";
+import * as uuid from "uuid";
 
-type ActiveTab = {
-  reference_id: string;
-  id: number;
+const peer_id = uuid.v4();
+
+const store = api.storage.createRoomStore();
+
+type ActiveRoom = {
   tab: browser.Tabs.Tab;
-  ports: Map<string, browser.Runtime.Port>;
+  room: api.rooms.Room;
+
+  source: string;
+  peers: Record<string, api.rooms.Peer>;
+
+  dispose: () => void;
 };
 
-const tabs = new Map<string, ActiveTab>();
+type State = {
+  active_room?: ActiveRoom;
+};
 
-const socket = protocols.ws.createSocketClient({
-  endpoint: "ws://localhost:52543",
-  codec: protocols.extension_ipc.Codec,
-  onDisconnect: () => {
-    tabs.forEach((tab) => {
-      browser.tabs.remove(tab.id);
-    });
-    tabs.clear();
-  }
+const state = mobx.observable<State>({});
+
+const sendStateToUI = () => {
+  socket.sendMessage(socket.FromProcess.Background, {
+    type: "state-changed",
+    state: {
+      rooms: Array.from(store.data.values()).map((room) => {
+        return {
+          id: room.id,
+          name: room.getState().metadata.name || ""
+        };
+      }),
+      active_room: state.active_room
+        ? {
+            id: state.active_room.room.id,
+            peers: state.active_room.peers,
+            source: state.active_room.source
+          }
+        : undefined
+    }
+  });
+};
+
+mobx.autorun(() => {
+  sendStateToUI();
 });
+
+store.load();
 
 const injectContentScripts = async (tab_id: number) => {
   await browser.tabs.executeScript(tab_id, {
@@ -34,45 +65,26 @@ const injectContentScripts = async (tab_id: number) => {
 };
 
 browser.tabs.onRemoved.addListener((tab_id) => {
-  for (const tab of tabs.values()) {
-    if (tab.id === tab_id) {
-      console.log(`tab ${tab.reference_id}[${tab.id}] closed`);
-
-      socket.send({
-        type: "tab-closed",
-        reference_id: tab.reference_id
-      });
-      tabs.delete(tab.reference_id);
-    }
+  if (state.active_room?.tab.id === tab_id) {
+    console.log(`tab ${state.active_room.room.id}[${state.active_room.tab.id}] closed`);
+    state.active_room.dispose();
   }
 });
 
 browser.tabs.onUpdated.addListener((tab_id, info) => {
-  for (const tab of tabs.values()) {
-    if (tab.id === tab_id) {
-      if (info.status === "loading") {
-        injectContentScripts(tab.id);
-
-        if (info.url) {
-          console.log(`tab ${tab.reference_id}[${tab.id}] navigated`, info.url);
-
-          socket.send({
-            type: "upsert-tab",
-            reference_id: tab.reference_id,
-            url: info.url
-          });
-        }
-      }
+  if (state.active_room?.tab.id === tab_id) {
+    if (info.status === "loading") {
+      injectContentScripts(tab_id);
     }
   }
 });
 
-const createTab = (url: string) => {
+const createTab = (source?: string) => {
   return new Promise<browser.Tabs.Tab>(async (resolve) => {
     const tab = await browser.tabs.create(
       {
         active: true,
-        url: url
+        url: source
       },
       // @ts-ignore
       (tab) => {
@@ -82,104 +94,99 @@ const createTab = (url: string) => {
     if (tab) {
       resolve(tab);
     }
-  }).then(async (tab) => {
-    await injectContentScripts(tab.id!);
-    return tab;
   });
 };
 
-socket.subscribe(async (event) => {
-  switch (event.type) {
-    case "upsert-tab": {
-      let tab = tabs.get(event.reference_id);
-      if (!tab) {
-        const new_tab = await createTab(event.url);
-        tab = {
-          tab: new_tab,
-          id: new_tab.id!,
-          ports: new Map(),
-          reference_id: event.reference_id
-        };
+const joinRoom = async (room_id: string) => {
+  console.log(`Got UI request to join room ${room_id}`);
 
-        tabs.set(event.reference_id, tab);
-      }
-
-      if (tab.tab.url === event.url) {
-        return;
-      }
-
-      await browser.tabs.update(tab.id, {
-        url: event.url
-      });
-      return;
-    }
-
-    case "close-tab": {
-      const tab = tabs.get(event.reference_id);
-      if (!tab) {
-        return;
-      }
-
-      await browser.tabs.remove(tab.id);
-      tabs.delete(event.reference_id);
-
-      return;
-    }
-
-    case "seek":
-    case "pause":
-    case "play":
-    case "get-state": {
-      const tab = tabs.get(event.reference_id);
-      if (!tab) {
-        return;
-      }
-
-      const port = tab.ports.get(event.player_id);
-      if (!port) {
-        return;
-      }
-
-      return port.postMessage(event);
-    }
+  let room = store.data.get(room_id);
+  if (!room) {
+    room = store.join(room_id);
   }
-});
 
-browser.runtime.onConnect.addListener((port) => {
-  for (const tab of tabs.values()) {
-    if (tab.id !== port.sender?.tab?.id) {
-      continue;
+  const disposers: Array<() => void> = [];
+
+  const client = api.clients.createWebSocketClient({
+    endpoint: "ws://localhost:9987",
+    room_id: room_id,
+    peer_id
+  });
+  const activation = api.rooms.activateRoom({
+    room,
+    peer_id,
+    client
+  });
+
+  const observer = room.observe((event) => {
+    const url = event.current.metadata.source;
+    if (url !== event.previous.metadata.source) {
+      browser.tabs.update(new_tab.id, {
+        url
+      });
     }
 
-    console.log(`Port ${port.name} registered on tab ${tab.reference_id}`);
-    tab.ports.set(port.name, port);
+    if (state.active_room) {
+      state.active_room.peers = event.current.peers;
+      state.active_room.source = event.current.metadata.source;
+    }
+  });
 
-    socket.send({
-      type: "player-registered",
-      player_id: port.name,
-      reference_id: tab.reference_id
-    });
+  const room_state = room.getState();
+  console.log(room_state);
 
-    port.onDisconnect.addListener(() => {
-      console.log(`Port ${port.name} on tab ${tab.reference_id} disconnected`);
+  const new_tab = await createTab(room_state.metadata.source);
+  state.active_room = {
+    tab: new_tab,
+    room: room,
 
-      tab.ports.delete(port.name);
+    source: room_state.metadata.source,
+    peers: room_state.peers,
 
-      socket.send({
-        type: "player-deregistered",
-        player_id: port.name,
-        reference_id: tab.reference_id
-      });
-    });
+    dispose: async () => {
+      state.active_room = undefined;
+      disposers.forEach((disposer) => disposer());
+      try {
+        await browser.tabs.remove(new_tab.id);
+      } catch (err) {}
+    }
+  };
 
-    port.onMessage.addListener((event: protocols.ipc.IPCEvent) => {
-      console.log("Received IPC event", event);
+  const binding = api.player_managers.bindPlayerToRoom({
+    manager: ipc_player_manager.createIPCPlayerManager(new_tab.id),
+    room: room,
+    peer_id
+  });
 
-      socket.send({
-        ...event,
-        reference_id: tab.reference_id,
-        player_id: port.name
-      });
-    });
+  disposers.push(activation.shutdown, observer, client.disconnect, binding);
+};
+
+socket.subscribeToMessages(socket.FromProcess.UI, async (event) => {
+  switch (event.type) {
+    case "get-state": {
+      console.log("Got UI request for state");
+      return sendStateToUI();
+    }
+
+    case "join-room": {
+      return await joinRoom(event.room_id);
+    }
+
+    case "create-room": {
+      const room = store.create(event.name);
+      return await joinRoom(room.id);
+    }
+
+    case "delete-room": {
+      if (state.active_room?.room.id === event.room_id) {
+        state.active_room.dispose();
+      }
+      return store.delete(event.room_id);
+    }
+
+    case "leave-room": {
+      console.log(`Got UI request to leave room ${event.room_id}`);
+      state.active_room?.dispose();
+    }
   }
 });
