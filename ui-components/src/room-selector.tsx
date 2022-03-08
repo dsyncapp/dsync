@@ -3,14 +3,14 @@ import * as Icons from "@geist-ui/icons";
 import styled from "styled-components";
 import * as React from "react";
 
-import * as api from "@dsyncapp/api"
+import * as api from "@dsyncapp/api";
 
 import CreateRoomModal from "./create-room-modal";
 import JoinRoomModal from "./join-room-modal";
 
 type Props = {
-  rooms: api.rooms.Room[];
-  onRoomSelected: (room: api.rooms.Room) => void;
+  rooms: { id: string; name?: string }[];
+  onRoomSelected: (room_id: string) => void;
   onCreateRoomClicked: (name: string) => void;
   onRoomJoined: (room_id: string) => void;
   onRoomDelete: (room_id: string) => void;
@@ -51,18 +51,17 @@ export const RoomSelector: React.FC<Props> = (props) => {
       <Next.Spacer />
 
       {props.rooms.map((room) => {
-        const state = room.state?.toJSON();
         return (
           <Next.Row key={room.id}>
             <Next.Card
               style={{ margin: 4, flexDirection: "row" }}
-              onClick={() => props.onRoomSelected(room)}
+              onClick={() => props.onRoomSelected(room.id)}
               clickable
               hoverable
               bordered
             >
               <Next.Row fluid justify="space-between" align="center">
-                {state?.metadata.name ? state.metadata.name : room.id}
+                {room.name || room.id}
 
                 <Next.Button
                   auto

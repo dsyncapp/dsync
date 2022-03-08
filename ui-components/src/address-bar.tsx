@@ -7,7 +7,6 @@ import * as api from "@dsyncapp/api";
 import CreateRoomModal from "./create-room-modal";
 import JoinRoomModal from "./join-room-modal";
 import DropDown from "./drop-down";
-import * as hooks from "../hooks";
 
 export enum SourceType {
   Embedded = "embedded",
@@ -17,6 +16,9 @@ export enum SourceType {
 type Props = {
   rooms: api.rooms.Room[];
   active_room: api.rooms.Room;
+
+  fullscreen: boolean;
+  room_state: api.rooms.RoomState;
 
   onRoomClicked: (room: api.rooms.Room) => void;
   onCreateRoomClicked: (name: string) => void;
@@ -33,21 +35,17 @@ export const AddressBar: React.FC<Props> = (props) => {
   const join_modal = Next.useModal();
   const create_modal = Next.useModal();
 
-  const fullscreen = hooks.useFullscreenObserver();
-
   const source_input = React.useRef<HTMLInputElement | null>(null);
   const [source, setSource] = React.useState("");
 
-  const room_state = hooks.useRoomState(props.active_room);
-
   React.useEffect(() => {
-    if (room_state.metadata.source !== source) {
-      setSource(room_state.metadata.source || "");
+    if (props.room_state.metadata.source !== source) {
+      setSource(props.room_state.metadata.source || "");
     }
-  }, [room_state.metadata.source]);
+  }, [props.room_state.metadata.source]);
 
   let style: any = {};
-  if (fullscreen) {
+  if (props.fullscreen) {
     style.display = "none";
   }
 
@@ -82,7 +80,7 @@ export const AddressBar: React.FC<Props> = (props) => {
           onChange={(e) => setSource(e.target.value)}
           value={source}
           onBlur={() => {
-            setSource(room_state.metadata.source || "");
+            setSource(props.room_state.metadata.source || "");
           }}
           onKeyPress={(key) => {
             if (key.code === "Enter") {
@@ -103,7 +101,7 @@ export const AddressBar: React.FC<Props> = (props) => {
               navigator.clipboard.writeText(props.active_room.id);
             }}
           >
-            room: {room_state.metadata.name || props.active_room.id}
+            room: {props.room_state.metadata.name || props.active_room.id}
           </Next.Button>
         </Next.Tooltip>
       </Next.Grid>
@@ -113,10 +111,10 @@ export const AddressBar: React.FC<Props> = (props) => {
           auto
           size="xs"
           flat
-          color={api.rooms.utils.allPeersReady(room_state.peers) ? "success" : "error"}
+          color={api.rooms.utils.allPeersReady(props.room_state.peers) ? "success" : "error"}
           style={{ marginLeft: 10 }}
         >
-          {api.rooms.utils.filterActivePeers(room_state.peers).length}
+          {api.rooms.utils.filterActivePeers(props.room_state.peers).length}
         </Next.Button>
       </Next.Grid>
 

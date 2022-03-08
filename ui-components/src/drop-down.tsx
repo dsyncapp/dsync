@@ -63,7 +63,7 @@ export const Dropdown: React.FC<Props> = (props) => {
       <Items>
         {props.items.map((item, i) => {
           return (
-            <Menu.Item onClick={() => props.onSelect(item)}>
+            <Menu.Item onClick={() => props.onSelect(item)} key={i}>
               {() => {
                 return (
                   <Next.Button

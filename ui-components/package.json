@@ -1,0 +1,22 @@
+{
+  "name": "@dsyncapp/ui-components",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "types": "dist/@types/index.js",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@dsyncapp/api": "^0.0.1",
+    "@dsyncapp/protocols": "^0.0.1",
+    "@geist-ui/icons": "^1.0.1",
+    "@headlessui/react": "^1.5.0",
+    "@nextui-org/react": "^1.0.2-beta.2",
+    "react": "17.0.2",
+    "styled-components": "^5.3.3"
+  },
+  "devDependencies": {
+    "@types/react": "17.0.39",
+    "@types/styled-components": "^5.1.22"
+  }
+}

@@ -3,12 +3,11 @@ import type { NextPage } from "next";
 import * as React from "react";
 
 import * as constants from "../src/constants";
+import * as UI from "@dsyncapp/ui-components"
 import * as api from "@dsyncapp/api";
 
 import * as store from "../src/store";
-import * as hooks from "../src/hooks";
 
-import RoomSelector from "../src/components/room-selector";
 import Room from "../src/components/room";
 
 const Home: NextPage = mobx.observer(() => {
@@ -54,7 +53,7 @@ const Home: NextPage = mobx.observer(() => {
       ) : store.state.active_room ? (
         <p>Room loading</p>
       ) : (
-        <RoomSelector
+        <UI.RoomSelector
           rooms={store.state.rooms}
           onRoomSelected={(room) => store.joinRoom(room.id)}
           onCreateRoomClicked={store.createRoom}

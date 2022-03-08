@@ -14,17 +14,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@dsyncapp/dsync": "^0.0.1",
+    "@dsyncapp/app": "^0.0.1",
     "@dsyncapp/protocols": "^0.0.1",
     "dotenv": "^16.0.0",
     "lodash": "^4.17.21",
-    "uuid": "^8.3.2",
-    "ws": "^8.4.2"
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.178",
     "@types/uuid": "^8.3.4",
-    "@types/ws": "^8.2.2",
     "electron": "^17.0.0",
     "electron-builder": "^22.14.13"
   },

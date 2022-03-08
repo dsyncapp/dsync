@@ -8,7 +8,7 @@ import * as store from "../store";
 import * as React from "react";
 import * as _ from "lodash";
 
-import AddressBar, { SourceType } from "./address-bar";
+import * as UI from "@dsyncapp/ui-components";
 import ManualSource from "./manual-source";
 import WebSource from "./web-source";
 
@@ -28,9 +28,11 @@ type Props = {
 export const ActiveRoom: React.FC<Props> = (props) => {
   const [manager, setManager] = React.useState<api.player_managers.PlayerManager | undefined>();
 
-  const [source_type, setSourceType] = React.useState(SourceType.Manual);
+  const [source_type, setSourceType] = React.useState(UI.SourceType.Manual);
 
+  const fullscreen = hooks.useFullscreenObserver();
   const room_state = hooks.useRoomState(props.room);
+
   const active_source = room_state.metadata.source || "";
 
   React.useEffect(() => {
@@ -47,14 +49,14 @@ export const ActiveRoom: React.FC<Props> = (props) => {
 
   let source;
   switch (source_type) {
-    case SourceType.Embedded: {
+    case UI.SourceType.Embedded: {
       if (!active_source) {
         break;
       }
       source = <WebSource source={active_source} onMount={setManager} />;
       break;
     }
-    case SourceType.Manual: {
+    case UI.SourceType.Manual: {
       source = <ManualSource onMount={setManager} />;
       break;
     }
@@ -62,9 +64,11 @@ export const ActiveRoom: React.FC<Props> = (props) => {
 
   return (
     <Container>
-      <AddressBar
+      <UI.AddressBar
         rooms={props.rooms}
         active_room={props.room}
+        fullscreen={fullscreen}
+        room_state={room_state}
         onRoomClicked={(room) => store.joinRoom(room.id)}
         onCreateRoomClicked={store.createRoom}
         onRoomJoined={store.joinNewRoom}

@@ -1,5 +1,5 @@
 {
-  "name": "@dsyncapp/dsync",
+  "name": "@dsyncapp/app",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -9,13 +9,11 @@
   "dependencies": {
     "@dsyncapp/api": "^0.0.1",
     "@dsyncapp/protocols": "^0.0.1",
+    "@dsyncapp/ui-components": "^0.0.1",
     "@geist-ui/icons": "^1.0.1",
     "@headlessui/react": "^1.5.0",
-    "@hookstate/core": "^3.0.13",
     "@nextui-org/react": "^1.0.2-beta.2",
     "@types/uuid": "^8.3.4",
-    "date-fns": "^2.28.0",
-    "idb": "^7.0.0",
     "lodash": "^4.17.21",
     "mobx": "^6.4.2",
     "mobx-react-lite": "^3.3.0",
@@ -23,8 +21,7 @@
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "styled-components": "^5.3.3",
-    "uuid": "^8.3.2",
-    "yjs": "^13.5.27"
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.178",
