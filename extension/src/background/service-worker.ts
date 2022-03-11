@@ -1,7 +1,7 @@
 import * as ipc_player_manager from "./ipc-player-manager";
 import * as browser from "webextension-polyfill";
 import * as api from "@dsyncapp/api";
-import * as socket from "./socket";
+import * as socket from "../socket";
 import * as mobx from "mobx";
 import * as uuid from "uuid";
 
@@ -38,6 +38,7 @@ const sendStateToUI = () => {
       active_room: state.active_room
         ? {
             id: state.active_room.room.id,
+            name: state.active_room.room.getState().metadata.name,
             peers: state.active_room.peers,
             source: state.active_room.source
           }
@@ -53,6 +54,8 @@ mobx.autorun(() => {
 store.load();
 
 const injectContentScripts = async (tab_id: number) => {
+  console.log(`Injecting content scripts into ${tab_id}`);
+
   await browser.tabs.executeScript(tab_id, {
     allFrames: true,
     file: "/dist/polyfill.js"
@@ -73,14 +76,19 @@ browser.tabs.onRemoved.addListener((tab_id) => {
 
 browser.tabs.onUpdated.addListener((tab_id, info) => {
   if (state.active_room?.tab.id === tab_id) {
-    if (info.status === "loading") {
+    if (info.status === "complete") {
+      // if (!state.active_room.tab.url?.startsWith("https://")) {
+      //   console.log("Skipping", state.active_room.tab.url)
+      //   return;
+      // }
+
       injectContentScripts(tab_id);
     }
   }
 });
 
-const createTab = (source?: string) => {
-  return new Promise<browser.Tabs.Tab>(async (resolve) => {
+const createTab = async (source?: string) => {
+  const tab = await new Promise<browser.Tabs.Tab>(async (resolve) => {
     const tab = await browser.tabs.create(
       {
         active: true,
@@ -95,6 +103,27 @@ const createTab = (source?: string) => {
       resolve(tab);
     }
   });
+
+  if (source) {
+    injectContentScripts(tab.id);
+  }
+
+  return tab;
+};
+
+export const closeTab = async (id: number) => {
+  const tab = await new Promise(async (resolve) => {
+    // @ts-ignore
+    const tabs = await browser.tabs.query({}, (tabs) => {
+      resolve(tabs.find((tab) => tab.id === id));
+    });
+    if (tabs) {
+      resolve(tabs.find((tab) => tab.id === id));
+    }
+  });
+  if (tab) {
+    await browser.tabs.remove(id);
+  }
 };
 
 const joinRoom = async (room_id: string) => {
@@ -118,47 +147,50 @@ const joinRoom = async (room_id: string) => {
     client
   });
 
-  const observer = room.observe((event) => {
-    const url = event.current.metadata.source;
-    if (url !== event.previous.metadata.source) {
-      browser.tabs.update(new_tab.id, {
-        url
-      });
-    }
+  await mobx.runInAction(async () => {
+    const room_state = room.getState();
+    const new_tab = await createTab(room_state.metadata.source);
 
-    if (state.active_room) {
-      state.active_room.peers = event.current.peers;
-      state.active_room.source = event.current.metadata.source;
-    }
+    const observer = room.observe((event) => {
+      const url = event.current.metadata.source;
+      if (url !== event.previous.metadata.source) {
+        browser.tabs.update(new_tab.id, {
+          url
+        });
+      }
+
+      if (state.active_room) {
+        mobx.runInAction(() => {
+          state.active_room.peers = event.current.peers;
+          state.active_room.source = event.current.metadata.source;
+        });
+      }
+    });
+
+    state.active_room = {
+      tab: new_tab,
+      room: room,
+
+      source: room_state.metadata.source,
+      peers: room_state.peers,
+
+      dispose: async () => {
+        mobx.runInAction(() => {
+          state.active_room = undefined;
+        });
+        disposers.forEach((disposer) => disposer());
+        closeTab(new_tab.id);
+      }
+    };
+
+    const binding = api.player_managers.bindPlayerToRoom({
+      manager: ipc_player_manager.createIPCPlayerManager(new_tab.id),
+      room: room,
+      peer_id
+    });
+
+    disposers.push(activation.shutdown, observer, client.disconnect, binding);
   });
-
-  const room_state = room.getState();
-  console.log(room_state);
-
-  const new_tab = await createTab(room_state.metadata.source);
-  state.active_room = {
-    tab: new_tab,
-    room: room,
-
-    source: room_state.metadata.source,
-    peers: room_state.peers,
-
-    dispose: async () => {
-      state.active_room = undefined;
-      disposers.forEach((disposer) => disposer());
-      try {
-        await browser.tabs.remove(new_tab.id);
-      } catch (err) {}
-    }
-  };
-
-  const binding = api.player_managers.bindPlayerToRoom({
-    manager: ipc_player_manager.createIPCPlayerManager(new_tab.id),
-    room: room,
-    peer_id
-  });
-
-  disposers.push(activation.shutdown, observer, client.disconnect, binding);
 };
 
 socket.subscribeToMessages(socket.FromProcess.UI, async (event) => {

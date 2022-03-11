@@ -1,3 +1,5 @@
+import "../polyfill";
+
 import * as protocols from "@dsyncapp/protocols";
 import * as browser from "webextension-polyfill";
 import * as controllers from "./controllers";
@@ -98,6 +100,10 @@ if (!window.__dsyncapp_lock) {
   window.__dsyncapp_lock = true;
 
   console.log("Extension content script loaded successfully");
+
+  browser.runtime.onConnect.addListener(() => {
+    console.log("connect");
+  });
 
   const interval = setInterval(() => {
     const player = controllers.scanForPlayer();

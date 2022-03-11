@@ -8,11 +8,11 @@
   "permissions": ["tabs", "webNavigation", "<all_urls>"],
 
   "background": {
-    "scripts": ["dist/polyfill.js", "dist/background.js"]
+    "scripts": ["dist/background/index.js"]
   },
 
   "browser_action": {
-    "default_popup": "./dist/ui/index.html",
-    "default_title": "Open Controller"
+    "default_popup": "index.html",
+    "default_title": "DSync Controller"
   }
 }

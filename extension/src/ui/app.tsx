@@ -1,11 +1,11 @@
 import * as mobx from "mobx-react-lite";
-import type { NextPage } from "next";
 import * as store from "./store";
 import * as React from "react";
 
 import * as UI from "@dsyncapp/ui-components";
+import Room from "./room";
 
-const Root: NextPage = mobx.observer(() => {
+const App = mobx.observer(() => {
   React.useEffect(() => {
     store.loadRooms();
   }, []);
@@ -13,7 +13,7 @@ const Root: NextPage = mobx.observer(() => {
   return (
     <div style={{ height: "600px", width: "400px" }}>
       {store.state.active_room ? (
-        <p>In a Room!</p>
+        <Room room={store.state.active_room} onLeaveRoomClicked={store.leaveRoom} />
       ) : (
         <UI.RoomSelector
           rooms={store.state.rooms}
@@ -27,4 +27,4 @@ const Root: NextPage = mobx.observer(() => {
   );
 });
 
-export default Root;
+export default App;

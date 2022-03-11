@@ -7,8 +7,10 @@ export const state = mobx.observable<socket.ExtensionState>({
 
 socket.subscribeToMessages(socket.FromProcess.Background, (event) => {
   if (event.type === "state-changed") {
-    state.rooms = event.state.rooms;
-    state.active_room = event.state.active_room;
+    mobx.runInAction(() => {
+      state.rooms = event.state.rooms;
+      state.active_room = event.state.active_room;
+    });
   }
 });
 

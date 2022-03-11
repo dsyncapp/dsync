@@ -6,17 +6,20 @@ export enum FromProcess {
   UI = "extension-ui"
 }
 
+export type ActiveRoom = {
+  id: string;
+  name?: string;
+  source: string;
+  peers: Record<string, api.rooms.Peer>;
+};
+
 export type ExtensionState = {
   rooms: Array<{
     id: string;
     name: string;
   }>;
 
-  active_room?: {
-    id: string;
-    source: string;
-    peers: Record<string, api.rooms.Peer>;
-  };
+  active_room?: ActiveRoom;
 };
 
 export type StateChangedEvent = {
