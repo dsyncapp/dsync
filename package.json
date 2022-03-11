@@ -1,15 +1,17 @@
 {
-	"scripts": {
-		"watch-server": "cd signaling-server && pnpm watch",
-		"watch-app": "cd app && pnpm watch",
-		"watch": "concurrently -r npm:watch-*",
-		"build": "pnpm recursive run build"
-	},
-	"devDependencies": {
-		"@types/node": "17.0.15",
-		"concurrently": "^7.0.0",
-		"dotenv": "^16.0.0",
-		"env-cmd": "^10.1.0",
-		"typescript": "4.5.5"
-	}
+  "scripts": {
+    "prepare": "cp ./scripts/pre-commit.sh .git/hooks/pre-commit",
+    "watch-server": "cd signaling-server && pnpm watch",
+    "watch-app": "cd app && pnpm watch",
+    "watch": "concurrently -r npm:watch-*",
+    "build": "pnpm recursive run build"
+  },
+  "devDependencies": {
+    "@types/node": "17.0.15",
+    "concurrently": "^7.0.0",
+    "dotenv": "^16.0.0",
+    "env-cmd": "^10.1.0",
+    "prettier": "^2.5.1",
+    "typescript": "4.5.5"
+  }
 }
