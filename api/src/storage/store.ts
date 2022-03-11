@@ -59,7 +59,9 @@ export const createRoomStore = () => {
       room.setName(name, "store");
 
       db.upsertRoom(room);
-      store.set(room.id, room);
+      mobx.runInAction(() => {
+        store.set(room.id, room);
+      });
 
       return room;
     },
@@ -69,13 +71,17 @@ export const createRoomStore = () => {
       });
 
       db.upsertRoom(room);
-      store.set(room.id, room);
+      mobx.runInAction(() => {
+        store.set(room.id, room);
+      });
 
       return room;
     },
     delete: async (id: string) => {
       await db.deleteRoom(id);
-      store.delete(id);
+      mobx.runInAction(() => {
+        store.delete(id);
+      });
     }
   };
 };

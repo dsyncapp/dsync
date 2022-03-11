@@ -1,9 +1,9 @@
+import * as defs from "./definitions";
 import * as date from "date-fns";
-import * as room from "./room";
 import * as _ from "lodash";
 import * as y from "yjs";
 
-export const filterActivePeers = (peers: Record<string, room.Peer>) => {
+export const filterActivePeers = (peers: Record<string, defs.Peer>) => {
   return Object.values(peers).filter((peer) => {
     if (!peer.updated_at) {
       return false;
@@ -16,7 +16,7 @@ export const filterActivePeers = (peers: Record<string, room.Peer>) => {
   });
 };
 
-export const peerIsReady = (peer: room.Peer) => {
+export const peerIsReady = (peer: defs.Peer) => {
   if (peer.status?.seeking) {
     return false;
   }
@@ -28,7 +28,7 @@ export const peerIsReady = (peer: room.Peer) => {
   return true;
 };
 
-export const allPeersReady = (peers: Record<string, room.Peer>) => {
+export const allPeersReady = (peers: Record<string, defs.Peer>) => {
   return filterActivePeers(peers).reduce((ready, peer) => {
     if (!ready) {
       return false;
@@ -37,7 +37,7 @@ export const allPeersReady = (peers: Record<string, room.Peer>) => {
   }, true);
 };
 
-export const getDeltaFromFurthestPeer = (peers: Record<string, room.Peer>, peer: room.Peer) => {
+export const getDeltaFromFurthestPeer = (peers: Record<string, defs.Peer>, peer: defs.Peer) => {
   const active_peers = filterActivePeers(peers);
 
   const [furthest] = _.sortBy(active_peers, (peer) => peer.status.time);

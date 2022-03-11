@@ -1,31 +1,11 @@
 import * as protocols from "@dsyncapp/protocols";
+import * as defs from "./definitions";
+import * as utils from "./utils";
+import * as date from "date-fns";
 import * as _ from "lodash";
 import * as y from "yjs";
 
-type PlayerState = {
-  paused: boolean;
-  time: number;
-  updated_at: number;
-};
-
-type RoomMetadata = {
-  name?: string;
-  source?: string;
-};
-
-export type Peer = {
-  id: string;
-  status: protocols.ipc.PlayerState;
-  updated_at: number;
-};
-
-export type RoomState = {
-  metadata: RoomMetadata;
-  state: PlayerState;
-  peers: Record<string, Peer>;
-};
-
-const serializeRoomState = (doc: y.Doc): RoomState => {
+const serializeRoomState = (doc: y.Doc): defs.RoomState => {
   const metadata = doc.getMap<any>("metadata");
   const state = doc.getMap<any>("state");
   const peers = doc.getMap("peers");
@@ -51,8 +31,8 @@ const setIfDifferent = (map: y.Map<any>, key: string, value: any) => {
 };
 
 export type RoomStateChangeEvent = {
-  current: RoomState;
-  previous: RoomState;
+  current: defs.RoomState;
+  previous: defs.RoomState;
   patch: Uint8Array;
   origin: string;
 };
@@ -72,7 +52,7 @@ export type Room = {
    */
   synced: boolean;
 
-  getState: () => RoomState;
+  getState: () => defs.RoomState;
   observe: (observer: RoomObserver) => () => void;
 
   applyUpdate: (update: Buffer) => void;
@@ -167,6 +147,15 @@ export const createRoom = (params: CreateRoomParams): Room => {
         setIfDifferent(peer, "id", peer_id);
         setIfDifferent(peer, "status", state);
         setIfDifferent(peer, "updated_at", Date.now());
+
+        // Garbage collect old peers
+        peers.forEach((peer, id) => {
+          const updated_at = peer.get("updated_at");
+          if (!updated_at || Math.abs(date.differenceInSeconds(new Date(updated_at), new Date())) > 5) {
+            console.log("GCING peer");
+            peers.delete(id);
+          }
+        });
       }, peer_id);
     },
 
