@@ -19,9 +19,14 @@ const rooms = new Map<string, Set<string>>();
 
 const createPingManager = (onTimeout: () => void) => {
   let timeout = setTimeout(onTimeout, 10000);
-  return () => {
-    clearTimeout(timeout);
-    timeout = setTimeout(onTimeout, 10000);
+  return {
+    terminate: () => {
+      clearTimeout(timeout);
+    },
+    heartbeat: () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(onTimeout, 10000);
+    }
   };
 };
 
@@ -31,7 +36,7 @@ server.on("connection", (socket) => {
   let id: string | undefined;
   const joined_rooms = new Set<string>();
 
-  const pong = createPingManager(() => {
+  const ping_manager = createPingManager(() => {
     console.log(`Client ${id || "unknown"} timed out`);
     socket.close();
   });
@@ -41,7 +46,7 @@ server.on("connection", (socket) => {
   }, 5000);
 
   socket.on("pong", () => {
-    pong();
+    ping_manager.heartbeat();
   });
 
   socket.on("message", (message) => {
@@ -164,6 +169,8 @@ server.on("connection", (socket) => {
   });
 
   socket.on("close", () => {
+    ping_manager.terminate();
+
     if (!id) {
       console.log("Client disconnected");
       return;
