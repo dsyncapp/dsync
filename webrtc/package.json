@@ -1,0 +1,19 @@
+{
+  "name": "@dsyncapp/webrtc",
+  "version": "0.0.1",
+  "description": "A WebRTC client",
+  "main": "dist/index.js",
+  "types": "dist/@types/index.js",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "author": "Julien Vincent",
+  "license": "MIT",
+  "dependencies": {
+    "@dsyncapp/protocols": "^0.0.1",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@types/uuid": "^8.3.4"
+  }
+}
