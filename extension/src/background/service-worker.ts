@@ -1,5 +1,4 @@
 import * as ipc_player_manager from "./ipc-player-manager";
-import * as browser from "webextension-polyfill";
 import * as api from "@dsyncapp/api";
 import * as socket from "../socket";
 import * as mobx from "mobx";
@@ -10,7 +9,7 @@ const peer_id = uuid.v4();
 const store = api.storage.createRoomStore();
 
 type ActiveRoom = {
-  tab: browser.Tabs.Tab;
+  tab: chrome.tabs.Tab;
   room: api.rooms.Room;
 
   source: string;
@@ -54,75 +53,51 @@ mobx.autorun(() => {
 store.load();
 
 const injectContentScripts = async (tab_id: number) => {
+  const tab = await chrome.tabs.get(tab_id);
+  if (!tab.url.startsWith("https://")) {
+    return;
+  }
+
   console.log(`Injecting content scripts into ${tab_id}`);
 
-  await browser.tabs.executeScript(tab_id, {
-    allFrames: true,
-    file: "/dist/polyfill.js"
-  });
-
-  await browser.tabs.executeScript(tab_id, {
-    allFrames: true,
-    file: "/dist/content.js"
+  await chrome.scripting.executeScript({
+    files: ["/dist/content/index.js"],
+    target: {
+      tabId: tab_id,
+      allFrames: true
+    }
   });
 };
 
-browser.tabs.onRemoved.addListener((tab_id) => {
+chrome.tabs.onRemoved.addListener((tab_id) => {
   if (state.active_room?.tab.id === tab_id) {
     console.log(`tab ${state.active_room.room.id}[${state.active_room.tab.id}] closed`);
     state.active_room.dispose();
   }
 });
 
-browser.tabs.onUpdated.addListener((tab_id, info) => {
+chrome.tabs.onUpdated.addListener(async (tab_id, info) => {
   if (state.active_room?.tab.id === tab_id) {
-    if (info.status === "complete") {
-      // if (!state.active_room.tab.url?.startsWith("https://")) {
-      //   console.log("Skipping", state.active_room.tab.url)
-      //   return;
-      // }
-
+    if (info.status === "loading") {
       injectContentScripts(tab_id);
     }
   }
 });
 
 const createTab = async (source?: string) => {
-  const tab = await new Promise<browser.Tabs.Tab>(async (resolve) => {
-    const tab = await browser.tabs.create(
-      {
-        active: true,
-        url: source
-      },
-      // @ts-ignore
-      (tab) => {
-        resolve(tab);
-      }
-    );
-    if (tab) {
-      resolve(tab);
-    }
+  const tab = await chrome.tabs.create({
+    active: true,
+    url: source
   });
-
-  if (source) {
-    injectContentScripts(tab.id);
-  }
 
   return tab;
 };
 
 export const closeTab = async (id: number) => {
-  const tab = await new Promise(async (resolve) => {
-    // @ts-ignore
-    const tabs = await browser.tabs.query({}, (tabs) => {
-      resolve(tabs.find((tab) => tab.id === id));
-    });
-    if (tabs) {
-      resolve(tabs.find((tab) => tab.id === id));
-    }
-  });
+  const tabs = await chrome.tabs.query({});
+  const tab = tabs.find((tab) => tab.id === id);
   if (tab) {
-    await browser.tabs.remove(id);
+    await chrome.tabs.remove(id);
   }
 };
 
@@ -154,7 +129,7 @@ const joinRoom = async (room_id: string) => {
     const observer = room.observe((event) => {
       const url = event.current.metadata.source;
       if (url !== event.previous.metadata.source) {
-        browser.tabs.update(new_tab.id, {
+        chrome.tabs.update(new_tab.id, {
           url
         });
       }
@@ -193,7 +168,7 @@ const joinRoom = async (room_id: string) => {
   });
 };
 
-socket.subscribeToMessages(socket.FromProcess.UI, async (event) => {
+socket.subscribeToMessages(socket.FromProcess.UI, async (event, sender) => {
   switch (event.type) {
     case "get-state": {
       console.log("Got UI request for state");
@@ -218,7 +193,16 @@ socket.subscribeToMessages(socket.FromProcess.UI, async (event) => {
 
     case "leave-room": {
       console.log(`Got UI request to leave room ${event.room_id}`);
-      state.active_room?.dispose();
+      return state.active_room?.dispose();
+    }
+  }
+});
+
+socket.subscribeToMessages(socket.FromProcess.ContentScript, async (event) => {
+  switch (event.type) {
+    case "new-iframe": {
+      console.log("Tab loaded new i-frame");
+      return injectContentScripts(state.active_room.tab.id);
     }
   }
 });

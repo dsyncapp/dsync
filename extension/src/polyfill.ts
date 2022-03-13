@@ -1,3 +1,3 @@
 import * as B from "buffer/";
 
-window.Buffer = B.Buffer as any;
+globalThis.Buffer = B.Buffer as any;

@@ -1,6 +1,8 @@
 import * as protocols from "@dsyncapp/protocols";
 
 export type PlayerController = {
+  video: HTMLVideoElement;
+
   state: protocols.ipc.PlayerState;
 
   play: () => void;

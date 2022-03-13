@@ -1,7 +1,7 @@
-import * as browser from "webextension-polyfill";
 import * as api from "@dsyncapp/api";
 
 export enum FromProcess {
+  ContentScript = "content-script",
   Background = "extension-background",
   UI = "extension-ui"
 }
@@ -51,24 +51,38 @@ export type DeleteRoom = {
   room_id: string;
 };
 
-export type UIEvent = GetState | StateChangedEvent | JoinRoom | CreateRoom | LeaveRoom | DeleteRoom;
+export type NewIframeNotification = {
+  type: "new-iframe";
+};
+
+export type UIEvent =
+  | GetState
+  | StateChangedEvent
+  | JoinRoom
+  | CreateRoom
+  | LeaveRoom
+  | DeleteRoom
+  | NewIframeNotification;
 
 export const sendMessage = (from: FromProcess, event: UIEvent) => {
-  browser.runtime.sendMessage({
+  chrome.runtime.sendMessage({
     from,
     ...event
   });
 };
 
-export const subscribeToMessages = (from: FromProcess, listener: (event: UIEvent) => void) => {
-  const handler = (event: UIEvent & { from: FromProcess }) => {
+export const subscribeToMessages = (
+  from: FromProcess,
+  listener: (event: UIEvent, sender: chrome.runtime.MessageSender) => void
+) => {
+  const handler = (event: UIEvent & { from: FromProcess }, sender: chrome.runtime.MessageSender) => {
     if (event && event.from === from) {
-      listener(event);
+      listener(event, sender);
     }
   };
 
-  browser.runtime.onMessage.addListener(handler);
+  chrome.runtime.onMessage.addListener(handler);
   return () => {
-    browser.runtime.onMessage.removeListener(handler);
+    chrome.runtime.onMessage.removeListener(handler);
   };
 };

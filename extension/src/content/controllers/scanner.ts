@@ -1,21 +1,27 @@
 import * as fallback from "./fallback-controller";
 import * as netflix from "./netflix-controller";
+import * as defs from "./definitions";
 
-const scanners = [
+type Scanner = {
+  host: RegExp;
+  create: (video: HTMLVideoElement) => defs.PlayerController;
+};
+
+const scanners: Scanner[] = [
   {
     host: /.*netflix.com$/,
-    scan: () => netflix.createNetflixController()
+    create: netflix.createNetflixController
   },
   {
     host: /.*/,
-    scan: () => fallback.createFallbackController()
+    create: fallback.createFallbackController
   }
 ];
 
-export const scanForPlayer = () => {
+export const create = (video: HTMLVideoElement) => {
   const scanner = scanners.find((scanner) => {
     return scanner.host.test(window.location.host);
   });
 
-  return scanner?.scan();
+  return scanner?.create(video);
 };

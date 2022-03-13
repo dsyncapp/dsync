@@ -1,17 +1,18 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "dsync",
   "version": "0.0.1",
 
   "description": "Allows the dsync app to control video players discovered in websites",
 
-  "permissions": ["tabs", "webNavigation", "<all_urls>"],
+  "permissions": ["tabs", "scripting"],
+  "host_permissions": ["http://*/", "https://*/"],
 
   "background": {
-    "scripts": ["dist/background/index.js"]
+    "service_worker": "dist/background/index.js"
   },
 
-  "browser_action": {
+  "action": {
     "default_popup": "index.html",
     "default_title": "DSync Controller"
   }

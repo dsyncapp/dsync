@@ -1,4 +1,3 @@
-import * as browser from "webextension-polyfill";
 import * as protocols from "@dsyncapp/protocols";
 import * as api from "@dsyncapp/api";
 import * as uuid from "uuid";
@@ -9,9 +8,9 @@ export const createIPCPlayerManager = (tab_id: number): api.player_managers.Play
     listeners.forEach((listener) => listener(event));
   };
 
-  let port: browser.Runtime.Port | undefined;
+  let port: chrome.runtime.Port | undefined;
 
-  browser.runtime.onConnect.addListener((sock) => {
+  chrome.runtime.onConnect.addListener((sock) => {
     if (tab_id !== sock.sender?.tab?.id) {
       return;
     }
@@ -42,7 +41,7 @@ export const createIPCPlayerManager = (tab_id: number): api.player_managers.Play
     });
   });
 
-  browser.tabs.onUpdated.addListener((changed_tab_id, info) => {
+  chrome.tabs.onUpdated.addListener((changed_tab_id, info) => {
     if (changed_tab_id !== tab_id) {
       return;
     }

@@ -20,11 +20,8 @@ window.addEventListener('message', function (event) {
   document.head.appendChild(script);
 };
 
-export const createNetflixController = (): defs.PlayerController | undefined => {
-  const controller = fallback.createFallbackController();
-  if (!controller) {
-    return;
-  }
+export const createNetflixController = (video: HTMLVideoElement): defs.PlayerController | undefined => {
+  const controller = fallback.createFallbackController(video);
 
   injectSeekScript();
 

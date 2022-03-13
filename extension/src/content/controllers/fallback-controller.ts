@@ -23,13 +23,10 @@ export const createPlayerEventHandlers = (
   });
 };
 
-export const createFallbackController = (): defs.PlayerController | undefined => {
-  const video = document.querySelector("video");
-  if (!video) {
-    return;
-  }
-
+export const createFallbackController = (video: HTMLVideoElement): defs.PlayerController | undefined => {
   return {
+    video,
+
     get state() {
       return getPlayerState(video);
     },

@@ -1,14 +1,14 @@
 import "../polyfill";
 
 import * as protocols from "@dsyncapp/protocols";
-import * as browser from "webextension-polyfill";
 import * as controllers from "./controllers";
+import * as socket from "../socket";
 import * as uuid from "uuid";
 
 type Player = {
   id: string;
   controller: controllers.PlayerController;
-  port: browser.Runtime.Port;
+  port: chrome.runtime.Port;
   event_lock: Set<string>;
 };
 
@@ -67,7 +67,7 @@ const onPlayerLoaded = (controller: controllers.PlayerController) => {
 
   console.log(`Player found. Assigning id ${id}`);
 
-  const port = browser.runtime.connect({
+  const port = chrome.runtime.connect({
     name: id
   });
 
@@ -94,24 +94,67 @@ const onPlayerLoaded = (controller: controllers.PlayerController) => {
   });
 };
 
-// @ts-ignore
-if (!window.__dsyncapp_lock) {
-  // @ts-ignore
-  window.__dsyncapp_lock = true;
+const scanDocumentForPlayers = () => {
+  const video = document.querySelector("video");
+  if (!video) {
+    return;
+  }
 
-  console.log("Extension content script loaded successfully");
-
-  browser.runtime.onConnect.addListener(() => {
-    console.log("connect");
+  const existing = Array.from(players.values()).find((player) => {
+    return player.controller.video === video;
   });
+  if (existing) {
+    return;
+  }
 
-  const interval = setInterval(() => {
-    const player = controllers.scanForPlayer();
-    if (!player) {
-      return;
+  console.log(video, video.id);
+  onPlayerLoaded(controllers.create(video));
+};
+
+let known_frames = new Set<HTMLIFrameElement>();
+const scanDocumentForIFrames = () => {
+  const frames = document.getElementsByTagName("iframe");
+
+  let found_new_frames = false;
+  for (const frame of frames) {
+    if (known_frames.has(frame)) {
+      continue;
     }
 
-    clearInterval(interval);
-    onPlayerLoaded(player);
-  }, 500);
+    known_frames.add(frame);
+    found_new_frames = true;
+
+    new MutationObserver(() => {
+      socket.sendMessage(socket.FromProcess.ContentScript, {
+        type: "new-iframe"
+      });
+    }).observe(frame, {
+      attributes: true
+    });
+  }
+
+  if (found_new_frames) {
+    socket.sendMessage(socket.FromProcess.ContentScript, {
+      type: "new-iframe"
+    });
+  }
+};
+
+const meta = document.getElementById("__dsyncapp_lock");
+if (!meta) {
+  const meta = document.createElement("meta");
+  meta.id = "__dsyncapp_lock";
+  document.querySelector("head").append(meta);
+
+  console.log("Desync extension content script loaded. Setting up monitors for video players");
+
+  new MutationObserver(() => {
+    scanDocumentForPlayers();
+    scanDocumentForIFrames();
+  }).observe(document, {
+    childList: true,
+    subtree: true
+  });
+
+  scanDocumentForPlayers();
 }
