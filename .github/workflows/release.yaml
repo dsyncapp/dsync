@@ -5,7 +5,41 @@ on:
     types: [published]
 
 jobs:
-  build:
+  release-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: latest
+
+      - name: Install Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+          cache: "pnpm"
+
+      - name: PNPM Install
+        run: pnpm i --frozen-lockfile
+
+      - name: Configure signaling-server
+        run: |
+          echo 'module.exports = {"API_ENDPOINT": "ws://188.166.151.111:9987"}' > extension/env.js
+
+      - name: Build
+        run: pnpm build
+
+      - name: Release
+        run: pnpm release
+
+      - name: Upload Artifacts to GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          files: extension/release/extension.tar.gz
+
+  release-electron-container:
+    if: ${{ false }}
     strategy:
       matrix:
         os: [macos-latest]
@@ -18,12 +52,12 @@ jobs:
         with:
           version: latest
 
-      # - name: Import Code-Signing Certificates
-      #   uses: apple-actions/import-codesign-certs@v1
-      #   with:
-      #     keychain-password: ${{ github.run_id }}
-      #     p12-file-base64: ${{ secrets.APPLE_SIGNING_CERT_P12 }}
-      #     p12-password: ${{ secrets.APPLE_SIGNING_CERT_PASSPHRASE }}
+      - name: Import Code-Signing Certificates
+        uses: apple-actions/import-codesign-certs@v1
+        with:
+          keychain-password: ${{ github.run_id }}
+          p12-file-base64: ${{ secrets.APPLE_SIGNING_CERT_P12 }}
+          p12-password: ${{ secrets.APPLE_SIGNING_CERT_PASSPHRASE }}
 
       # - name: Trust Cert
       #   run: |
@@ -42,22 +76,13 @@ jobs:
       - name: Configure signaling-server
         run: |
           echo '{"API_ENDPOINT": "ws://188.166.151.111:9987"}' > electron-container/env.json
-          echo 'module.exports = {"API_ENDPOINT": "ws://188.166.151.111:9987"}' > extension/env.js
 
       - name: Build
         run: pnpm build
 
       - name: Release
-        run: pnpm release
-
-      - name: Upload Artifacts to GitHub
-        uses: softprops/action-gh-release@v1
-        with:
-          files: extension/release/extension.tar.gz
-
-      # - name: Release
-      #   env:
-      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     CSC_KEYCHAIN: signing_temp.keychain
-      #     CSC_KEY_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSPHRASE }}
-      #   run: cd electron-container && pnpm release -- --${{ matrix.target }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_KEYCHAIN: signing_temp.keychain
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSPHRASE }}
+        run: cd electron-container && pnpm release -- --${{ matrix.target }}
