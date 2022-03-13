@@ -6,7 +6,8 @@
     "watch-server": "cd signaling-server && pnpm watch",
     "watch-app": "cd app && pnpm watch",
     "watch": "concurrently -r npm:watch-*",
-    "build": "pnpm recursive run build"
+    "build": "pnpm recursive run build",
+    "release": "pnpm recursive run release"
   },
   "devDependencies": {
     "@types/node": "17.0.15",

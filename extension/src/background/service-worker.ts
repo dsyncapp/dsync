@@ -111,8 +111,10 @@ const joinRoom = async (room_id: string) => {
 
   const disposers: Array<() => void> = [];
 
+  const env = require("../../env");
+
   const client = api.clients.createWebSocketClient({
-    endpoint: "ws://localhost:9987",
+    endpoint: env.API_ENDPOINT,
     room_id: room_id,
     peer_id
   });
@@ -122,26 +124,26 @@ const joinRoom = async (room_id: string) => {
     client
   });
 
-  await mobx.runInAction(async () => {
-    const room_state = room.getState();
-    const new_tab = await createTab(room_state.metadata.source);
+  const room_state = room.getState();
+  const new_tab = await createTab(room_state.metadata.source);
 
-    const observer = room.observe((event) => {
-      const url = event.current.metadata.source;
-      if (url !== event.previous.metadata.source) {
-        chrome.tabs.update(new_tab.id, {
-          url
-        });
-      }
+  const observer = room.observe((event) => {
+    const url = event.current.metadata.source;
+    if (url !== event.previous.metadata.source) {
+      chrome.tabs.update(new_tab.id, {
+        url
+      });
+    }
 
-      if (state.active_room) {
-        mobx.runInAction(() => {
-          state.active_room.peers = event.current.peers;
-          state.active_room.source = event.current.metadata.source;
-        });
-      }
-    });
+    if (state.active_room) {
+      mobx.runInAction(() => {
+        state.active_room.peers = event.current.peers;
+        state.active_room.source = event.current.metadata.source;
+      });
+    }
+  });
 
+  mobx.runInAction(() => {
     state.active_room = {
       tab: new_tab,
       room: room,
@@ -157,15 +159,15 @@ const joinRoom = async (room_id: string) => {
         closeTab(new_tab.id);
       }
     };
-
-    const binding = api.player_managers.bindPlayerToRoom({
-      manager: ipc_player_manager.createIPCPlayerManager(new_tab.id),
-      room: room,
-      peer_id
-    });
-
-    disposers.push(activation.shutdown, observer, client.disconnect, binding);
   });
+
+  const binding = api.player_managers.bindPlayerToRoom({
+    manager: ipc_player_manager.createIPCPlayerManager(new_tab.id),
+    room: room,
+    peer_id
+  });
+
+  disposers.push(activation.shutdown, observer, client.disconnect, binding);
 };
 
 socket.subscribeToMessages(socket.FromProcess.UI, async (event, sender) => {

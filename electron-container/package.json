@@ -9,7 +9,7 @@
     "build": "pnpm copy-resources && tsc -b",
     "start": "pnpm build && electron dist/index",
     "dist": "electron-builder build",
-    "release": "pnpm dist -- -p always"
+    "_release": "pnpm dist -- -p always"
   },
   "author": "",
   "license": "ISC",

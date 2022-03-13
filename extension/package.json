@@ -1,13 +1,13 @@
 {
   "name": "@dsyncapp/extension",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/@types/index.js",
   "scripts": {
     "build": "esbuild ./src/**/* --bundle --outdir=dist",
     "watch": "pnpm build -- --watch",
-    "release": "pnpm build && mkdir -p release && tar -czf release/extension.tar.gz ./dist manifest.json index.html"
+    "release": "mkdir -p release && tar -czf release/extension.tar.gz ./dist manifest.json index.html env.js"
   },
   "author": "Julien Vincent",
   "license": "MIT",

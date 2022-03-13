@@ -63,8 +63,24 @@ export const createIPCPlayerManager = (tab_id: number): api.player_managers.Play
   };
 
   let status_requests: Array<(status: protocols.ipc.PlayerState) => void> = [];
-  const getStatus = () => {
+  const getStatus = async () => {
+    if (!port) {
+      return {
+        paused: true,
+        seeking: false,
+        time: -1
+      };
+    }
+
     return new Promise<protocols.ipc.PlayerState>((resolve) => {
+      setTimeout(() => {
+        resolve({
+          paused: true,
+          seeking: false,
+          time: -1
+        });
+      }, 200);
+
       status_requests.push(resolve);
       sendEvent({
         type: "get-state",
