@@ -21,6 +21,7 @@ export const bindPlayerToRoom = (params: BindPlayerToRoomParams) => {
       } else {
         params.manager.play();
       }
+      return;
     }
 
     if (state.time > -1 && state.time !== previous_state.time) {

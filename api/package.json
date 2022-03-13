@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/@types/index.js",
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "watch": "pnpm build -- -w"
   },
   "author": "Julien Vincent",
   "license": "MIT",

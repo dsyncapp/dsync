@@ -1,6 +1,8 @@
 {
   "scripts": {
     "prepare": "cp ./scripts/pre-commit.sh .git/hooks/pre-commit",
+    "watch-api": "cd api && pnpm watch",
+    "watch-extension": "cd extension && pnpm watch",
     "watch-server": "cd signaling-server && pnpm watch",
     "watch-app": "cd app && pnpm watch",
     "watch": "concurrently -r npm:watch-*",
