@@ -16,7 +16,7 @@ export const filterActivePeers = (peers: Record<string, defs.Peer>) => {
   });
 };
 
-export const peerIsReady = (peer: defs.Peer) => {
+export const peerIsReady = (state: defs.PlayerState, peer: defs.Peer) => {
   if (peer.status?.seeking) {
     return false;
   }
@@ -25,15 +25,19 @@ export const peerIsReady = (peer: defs.Peer) => {
     return false;
   }
 
+  if (peer.start_time !== state.time) {
+    return false;
+  }
+
   return true;
 };
 
-export const allPeersReady = (peers: Record<string, defs.Peer>) => {
+export const allPeersReady = (state: defs.PlayerState, peers: Record<string, defs.Peer>) => {
   return filterActivePeers(peers).reduce((ready, peer) => {
     if (!ready) {
       return false;
     }
-    return peerIsReady(peer);
+    return peerIsReady(state, peer);
   }, true);
 };
 

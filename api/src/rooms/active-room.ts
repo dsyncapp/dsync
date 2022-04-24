@@ -51,7 +51,7 @@ export const activateRoom = (params: CreateRoomParams) => {
           return params.room.applyUpdate(event.patch);
         }
 
-        if (event.vector) {
+        if (event.vector && params.room.synced) {
           if (!utils.stateVectorsAreEqual(event.vector, params.room.getVector())) {
             console.log("Peer vector is out of sync. Emitting missing difference");
             params.client.send({

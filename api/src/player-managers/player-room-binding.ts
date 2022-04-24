@@ -24,12 +24,19 @@ export const bindPlayerToRoom = (params: BindPlayerToRoomParams) => {
       return;
     }
 
-    if (state.time > -1 && state.time !== previous_state.time) {
-      params.manager.seek(state.time);
+    const us = event.current.peers[params.peer_id];
+    if (!us) {
       return;
     }
 
-    if (rooms.utils.allPeersReady(event.current.peers) && !rooms.utils.allPeersReady(event.previous.peers)) {
+    if (Math.round(us.start_time) !== Math.round(state.time)) {
+      return params.manager.seek(state.time);
+    }
+
+    if (
+      rooms.utils.allPeersReady(event.current.state, event.current.peers) &&
+      !rooms.utils.allPeersReady(event.previous.state, event.previous.peers)
+    ) {
       if (!state.paused) {
         console.log("Resuming as all peers have become ready");
         params.manager.play();
@@ -37,18 +44,16 @@ export const bindPlayerToRoom = (params: BindPlayerToRoomParams) => {
       }
     }
 
-    if (!rooms.utils.allPeersReady(event.current.peers) && rooms.utils.allPeersReady(event.previous.peers)) {
+    if (
+      !rooms.utils.allPeersReady(event.current.state, event.current.peers) &&
+      rooms.utils.allPeersReady(event.previous.state, event.previous.peers)
+    ) {
       console.log("Pausing as all peers are no longer ready");
       params.manager.pause();
       return;
     }
 
-    const us = event.current.peers[params.peer_id];
-    if (!us) {
-      return;
-    }
-
-    if (!state.paused && us.status.paused && rooms.utils.allPeersReady(event.current.peers)) {
+    if (!state.paused && us.status.paused && rooms.utils.allPeersReady(event.current.state, event.current.peers)) {
       return params.manager.play();
     }
 
@@ -70,7 +75,7 @@ export const bindPlayerToRoom = (params: BindPlayerToRoomParams) => {
       return;
     }
 
-    if (rooms.utils.peerIsReady(delta.peer) && rooms.utils.peerIsReady(us) && delta.diff > 1) {
+    if (rooms.utils.peerIsReady(state, delta.peer) && rooms.utils.peerIsReady(state, us) && delta.diff > 1) {
       console.log("More than 1s out of sync with furthest peer. Adjusting time");
 
       // We adjust in steps to prevent over correcting small deltas
@@ -83,19 +88,11 @@ export const bindPlayerToRoom = (params: BindPlayerToRoomParams) => {
   });
 
   const interval = setInterval(() => {
-    // if (!video_manager.current) {
-    //   props.room.state?.updateStatus({
-    //     paused: true,
-    //     seeking: false,
-    //     time: -1
-    //   });
-    //   return;
-    // }
-
     params.manager.getState().then((status) => {
       params.room.updatePeerStatus(params.peer_id, status);
 
-      if (!status.paused && !rooms.utils.allPeersReady(params.room.getState().peers)) {
+      const room_state = params.room.getState();
+      if (!status.paused && !rooms.utils.allPeersReady(room_state.state, room_state.peers)) {
         params.manager.pause();
       }
     });
@@ -120,8 +117,12 @@ export const bindPlayerToRoom = (params: BindPlayerToRoomParams) => {
         return params.room.pause(params.peer_id);
       }
       case protocols.ipc.PlayerEventType.Seeking: {
-        console.log("seeked to new position", event.state.time);
+        console.log("seeking to new position", event.state.time);
         return params.room.seek(event.state.time, params.peer_id);
+      }
+      case protocols.ipc.PlayerEventType.Seeked: {
+        console.log("seeked to new position", event.state.time);
+        return params.room.updatePeerStatus(params.peer_id, event.state, event.state.time);
       }
     }
   });

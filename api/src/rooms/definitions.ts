@@ -14,6 +14,15 @@ export type RoomMetadata = {
 export type Peer = {
   id: string;
   status: protocols.ipc.PlayerState;
+
+  /**
+   * This is the time the current play 'period' was initialized from. Typically this
+   * should match the room state `time` property.
+   *
+   * This is used to control 'seeking' and ensures all players start playing at the same time
+   */
+  start_time: number;
+
   updated_at: number;
 };
 

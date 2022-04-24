@@ -1,7 +1,7 @@
 import * as protocols from "@dsyncapp/protocols";
 import * as defs from "./definitions";
-import * as utils from "./utils";
 import * as date from "date-fns";
+import * as mobx from "mobx";
 import * as _ from "lodash";
 import * as y from "yjs";
 
@@ -59,7 +59,7 @@ export type Room = {
   encode: (vector?: Buffer | Uint8Array) => Buffer;
   getVector: () => Buffer;
 
-  updatePeerStatus: (peer_id: string, status: protocols.ipc.PlayerState) => void;
+  updatePeerStatus: (peer_id: string, status: protocols.ipc.PlayerState, time?: number) => void;
 
   setName: (name: string, origin: string) => void;
   setSource: (source: string, origin: string) => void;
@@ -94,12 +94,10 @@ export const createRoom = (params: CreateRoomParams): Room => {
     }, origin);
   };
 
-  return {
+  const room: Room = mobx.observable({
     id: params.id,
     state: doc,
-    get synced() {
-      return synced;
-    },
+    synced,
 
     getState: () => {
       return serializeRoomState(doc);
@@ -124,7 +122,7 @@ export const createRoom = (params: CreateRoomParams): Room => {
     },
 
     applyUpdate: (patch: Buffer) => {
-      synced = true;
+      room.synced = true;
       y.applyUpdate(doc, patch);
     },
     encode: (vector) => {
@@ -134,7 +132,7 @@ export const createRoom = (params: CreateRoomParams): Room => {
       return Buffer.from(y.encodeStateVector(doc));
     },
 
-    updatePeerStatus: (peer_id, state) => {
+    updatePeerStatus: (peer_id, state, time) => {
       doc.transact(() => {
         const peers = doc.getMap<y.Map<any>>("peers");
 
@@ -146,6 +144,7 @@ export const createRoom = (params: CreateRoomParams): Room => {
 
         setIfDifferent(peer, "id", peer_id);
         setIfDifferent(peer, "status", state);
+        setIfDifferent(peer, "start_time", time || peer.get("start_time") || 0);
         setIfDifferent(peer, "updated_at", Date.now());
 
         // Garbage collect old peers
@@ -185,5 +184,7 @@ export const createRoom = (params: CreateRoomParams): Room => {
     seek: (time: number) => {
       setPlayerState("time", time, origin);
     }
-  };
+  });
+
+  return room;
 };
