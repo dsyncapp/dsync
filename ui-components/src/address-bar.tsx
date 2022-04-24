@@ -111,7 +111,7 @@ export const AddressBar: React.FC<Props> = (props) => {
           auto
           size="xs"
           flat
-          color={api.rooms.utils.allPeersReady(props.room_state.peers) ? "success" : "error"}
+          color={api.rooms.utils.allPeersReady(props.room_state.state, props.room_state.peers) ? "success" : "error"}
           style={{ marginLeft: 10 }}
         >
           {api.rooms.utils.filterActivePeers(props.room_state.peers).length}
