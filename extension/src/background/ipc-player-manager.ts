@@ -8,37 +8,35 @@ export const createIPCPlayerManager = (tab_id: number): api.player_managers.Play
     listeners.forEach((listener) => listener(event));
   };
 
-  let port: chrome.runtime.Port | undefined;
+  let player_id: string | undefined;
 
-  chrome.runtime.onConnect.addListener((sock) => {
-    if (tab_id !== sock.sender?.tab?.id) {
+  chrome.runtime.onMessage.addListener((event: protocols.ipc.IPCEvent, sender) => {
+    if (sender.tab?.id !== tab_id) {
       return;
     }
 
-    console.log(`Port ${sock.name} registered on tab ${tab_id}`);
-
-    port?.disconnect();
-    port = sock;
-
-    sock.onDisconnect.addListener(() => {
-      console.log(`Port ${sock.name} on tab ${tab_id} disconnected`);
-      port = undefined;
-    });
-
-    sock.onMessage.addListener((event: protocols.ipc.IPCEvent) => {
-      switch (event.type) {
-        case "player-state": {
-          for (const request of status_requests) {
-            request(event.state);
-          }
-          status_requests = [];
-          return;
-        }
-        case "player-event": {
-          return emit(event.payload);
-        }
+    switch (event.type) {
+      case "player-registered": {
+        console.log(`Player ${event.player_id} registered on tab ${tab_id}`);
+        player_id = event.player_id;
+        return;
       }
-    });
+      case "player-deregistered": {
+        console.log(`Player ${event.player_id} deregistered on tab ${tab_id}`);
+        player_id = undefined;
+        return;
+      }
+      case "player-state": {
+        for (const request of status_requests) {
+          request(event.state);
+        }
+        status_requests = [];
+        return;
+      }
+      case "player-event": {
+        return emit(event.payload);
+      }
+    }
   });
 
   chrome.tabs.onUpdated.addListener((changed_tab_id, info) => {
@@ -56,21 +54,21 @@ export const createIPCPlayerManager = (tab_id: number): api.player_managers.Play
   });
 
   const sendEvent = (event: protocols.ipc.IPCEvent) => {
-    if (!port) {
-      return;
-    }
-    port.postMessage(event);
+    // if (!player_id) {
+    //   return;
+    // }
+    chrome.tabs.sendMessage(tab_id, event, () => {});
   };
 
   let status_requests: Array<(status: protocols.ipc.PlayerState) => void> = [];
   const getStatus = async () => {
-    if (!port) {
-      return {
-        paused: true,
-        seeking: false,
-        time: -1
-      };
-    }
+    // if (!player_id) {
+    //   return {
+    //     paused: true,
+    //     seeking: false,
+    //     time: -1
+    //   };
+    // }
 
     return new Promise<protocols.ipc.PlayerState>((resolve) => {
       setTimeout(() => {

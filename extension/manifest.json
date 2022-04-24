@@ -5,7 +5,7 @@
 
   "description": "Allows the dsync app to control video players discovered in websites",
 
-  "permissions": ["tabs", "scripting"],
+  "permissions": ["tabs", "scripting", "storage"],
   "host_permissions": ["https://*/"],
 
   "background": {

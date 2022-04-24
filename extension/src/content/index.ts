@@ -8,23 +8,23 @@ import * as uuid from "uuid";
 type Player = {
   id: string;
   controller: controllers.PlayerController;
-  port: chrome.runtime.Port;
   event_lock: Set<string>;
 };
 
 const players = new Map<string, Player>();
 
-const emit = (id: string, event: protocols.ipc.IPCEvent) => {
-  const player = players.get(id);
+const emit = (event: protocols.ipc.IPCEvent) => {
+  const player = players.get(event.player_id);
   if (!player) {
     return;
   }
 
-  player.port.postMessage(event);
+  chrome.runtime.sendMessage(event);
 };
 
 const listenForCommands = (player: Player) => {
-  player.port.onMessage.addListener((message: protocols.ipc.IPCEvent) => {
+  chrome.runtime.onMessage.addListener((message: protocols.ipc.IPCEvent) => {
+    console.log("message", message);
     switch (message.type) {
       case "pause": {
         if (player.controller.state.paused) {
@@ -52,7 +52,7 @@ const listenForCommands = (player: Player) => {
         return;
       }
       case "get-state": {
-        return emit(player.id, {
+        return emit({
           type: "player-state",
           player_id: player.id,
           state: player.controller.state
@@ -63,19 +63,14 @@ const listenForCommands = (player: Player) => {
 };
 
 const onPlayerLoaded = (controller: controllers.PlayerController) => {
-  const id = uuid.v4();
+  const id = `player-${uuid.v4()}`;
 
   console.log(`Player found. Assigning id ${id}`);
-
-  const port = chrome.runtime.connect({
-    name: id
-  });
 
   const player: Player = {
     id,
     controller,
-    event_lock: new Set(),
-    port
+    event_lock: new Set()
   };
 
   players.set(id, player);
@@ -86,7 +81,7 @@ const onPlayerLoaded = (controller: controllers.PlayerController) => {
     if (player.event_lock.has(event.type)) {
       return player.event_lock.delete(event.type);
     }
-    emit(player.id, {
+    emit({
       type: "player-event",
       player_id: player.id,
       payload: event
@@ -157,4 +152,10 @@ if (!meta) {
   });
 
   scanDocumentForPlayers();
+
+  setInterval(() => {
+    chrome.runtime.sendMessage({
+      from: "keepalive"
+    });
+  }, 500);
 }
